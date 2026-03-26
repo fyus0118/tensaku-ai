@@ -1,4 +1,58 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getExamById } from "@/lib/exams";
+
+// ── 合格ライン定義 ──────────────────────────────
+export const PASS_REQUIREMENTS: Record<string, {
+  passingScore: number;
+  subjectWeights: Record<string, number>;
+  minSubjectScore?: number;
+  description: string;
+}> = {
+  "yobi-shihou": {
+    passingScore: 63, subjectWeights: { "憲法": 1, "民法": 1.5, "刑法": 1, "商法": 0.8, "民事訴訟法": 0.8, "刑事訴訟法": 0.8, "行政法": 1, "一般教養": 0.5 },
+    minSubjectScore: 40, description: "短答 270点中160点前後 + 論文合格点"
+  },
+  "shihou-shiken": {
+    passingScore: 65, subjectWeights: { "憲法": 1, "民法": 1.5, "刑法": 1, "商法": 0.8, "民事訴訟法": 0.8, "刑事訴訟法": 0.8, "行政法": 1, "選択科目": 0.7 },
+    minSubjectScore: 40, description: "短答+論文の総合点"
+  },
+  "shindan-shi": {
+    passingScore: 60, subjectWeights: { "経済学・経済政策": 1, "財務・会計": 1.2, "企業経営理論": 1.2, "運営管理": 1, "経営法務": 0.8, "経営情報システム": 0.8, "中小企業経営・政策": 0.8, "2次試験（事例I〜IV）": 1.5 },
+    minSubjectScore: 40, description: "1次 各科目40%以上かつ総点60%以上"
+  },
+  "kounin-kaikeishi": {
+    passingScore: 65, subjectWeights: { "簿記": 1.2, "財務会計論": 1.2, "管理会計論": 1, "監査論": 1, "企業法": 1, "租税法": 1, "選択科目": 0.7 },
+    minSubjectScore: 40, description: "短答70%前後 + 論文得点比率52%前後"
+  },
+  "takken": {
+    passingScore: 70, subjectWeights: { "権利関係（民法等）": 1, "法令上の制限": 1, "宅建業法": 1.5, "税・その他": 0.8 },
+    description: "50問中35問前後（年度により変動）"
+  },
+  "gyousei-shoshi": {
+    passingScore: 60, subjectWeights: { "基礎法学": 0.5, "憲法": 1, "行政法": 1.5, "民法": 1.2, "商法・会社法": 0.8, "一般知識": 0.8 },
+    minSubjectScore: 40, description: "法令等122点以上 + 一般知識24点以上 + 合計180点以上"
+  },
+  "sharoshi": {
+    passingScore: 65, subjectWeights: { "労働基準法": 1, "労働安全衛生法": 0.8, "労災保険法": 1, "雇用保険法": 1, "健康保険法": 1, "国民年金法": 1, "厚生年金保険法": 1, "一般常識": 0.8 },
+    minSubjectScore: 40, description: "選択式各3点以上 + 択一式各4点以上 + 総合点"
+  },
+  "fp2": {
+    passingScore: 60, subjectWeights: { "ライフプランニング": 1, "リスク管理": 1, "金融資産運用": 1, "タックスプランニング": 1, "不動産": 1, "相続・事業承継": 1 },
+    description: "学科60%以上 + 実技60%以上"
+  },
+  "koumuin": {
+    passingScore: 60, subjectWeights: { "数的処理": 1.5, "文章理解": 1, "社会科学": 1, "人文科学": 0.8, "自然科学": 0.8, "専門科目": 1.5, "論文試験": 1 },
+    description: "教養+専門の合計点（配点比率は試験種による）"
+  },
+  "ishi": {
+    passingScore: 70, subjectWeights: { "内科学": 1.5, "外科学": 1, "産婦人科": 1, "小児科": 1, "公衆衛生": 1, "一般臨床": 1 },
+    description: "必修80%以上 + 一般・臨床65%前後"
+  },
+  "kangoshi": {
+    passingScore: 60, subjectWeights: { "基礎看護学": 1, "成人看護学": 1.2, "老年看護学": 1, "母性看護学": 1, "小児看護学": 1, "精神看護学": 1, "在宅看護論": 1, "健康支援と社会保障": 1 },
+    description: "必修80%以上 + 一般問題65%前後"
+  },
+};
 
 /**
  * SM-2 間隔反復アルゴリズム
@@ -159,6 +213,208 @@ export async function getRecommendedDifficulty(
 /**
  * 学習ストリークを更新
  */
+// ── 合格予測 ─────────────────────────────────
+
+export interface SubjectScore {
+  subject: string;
+  accuracy: number;
+  weight: number;
+  questionsAnswered: number;
+  isAbovePassLine: boolean;
+  gapToPassLine: number;
+}
+
+export interface PassPrediction {
+  overallScore: number;
+  passProbability: number;
+  subjectScores: SubjectScore[];
+  recommendation: string;
+  questionsNeeded: number;
+}
+
+export async function getPrediction(
+  supabase: SupabaseClient,
+  userId: string,
+  examId: string
+): Promise<PassPrediction> {
+  const req = PASS_REQUIREMENTS[examId];
+  const exam = getExamById(examId);
+  if (!req || !exam) {
+    return { overallScore: 0, passProbability: 0, subjectScores: [], recommendation: "この試験の合格基準データがありません", questionsNeeded: 0 };
+  }
+
+  const { data: results } = await supabase
+    .from("practice_results")
+    .select("subject, is_correct")
+    .eq("user_id", userId)
+    .eq("exam_id", examId);
+
+  if (!results || results.length === 0) {
+    return { overallScore: 0, passProbability: 0, subjectScores: [], recommendation: "練習問題を解いて実力を測定しましょう", questionsNeeded: 50 };
+  }
+
+  // 科目別集計
+  const stats: Record<string, { total: number; correct: number }> = {};
+  for (const r of results) {
+    const s = r.subject || "その他";
+    if (!stats[s]) stats[s] = { total: 0, correct: 0 };
+    stats[s].total++;
+    if (r.is_correct) stats[s].correct++;
+  }
+
+  const subjectScores: SubjectScore[] = exam.subjects.map((s) => {
+    const st = stats[s.name] || { total: 0, correct: 0 };
+    const accuracy = st.total > 0 ? Math.round((st.correct / st.total) * 100) : 0;
+    const weight = req.subjectWeights[s.name] || 1;
+    const passLine = req.minSubjectScore || req.passingScore;
+    return {
+      subject: s.name,
+      accuracy,
+      weight,
+      questionsAnswered: st.total,
+      isAbovePassLine: accuracy >= passLine,
+      gapToPassLine: accuracy - passLine,
+    };
+  });
+
+  // 加重平均スコア
+  let weightedSum = 0, weightSum = 0;
+  for (const ss of subjectScores) {
+    if (ss.questionsAnswered > 0) {
+      weightedSum += ss.accuracy * ss.weight;
+      weightSum += ss.weight;
+    }
+  }
+  const overallScore = weightSum > 0 ? Math.round(weightedSum / weightSum) : 0;
+
+  // シグモイド関数で合格確率推定
+  const passProbability = Math.round(100 / (1 + Math.exp(-0.15 * (overallScore - req.passingScore))));
+
+  // 必要問題数の推定
+  const gap = Math.max(0, req.passingScore - overallScore);
+  const questionsNeeded = gap > 0 ? Math.ceil(gap * 3) : 0;
+
+  // 推薦メッセージ
+  let recommendation: string;
+  const weakest = subjectScores.filter((s) => s.questionsAnswered >= 2).sort((a, b) => a.accuracy - b.accuracy)[0];
+  if (passProbability >= 80) {
+    recommendation = "合格圏内です。苦手科目の最終確認を行いましょう。";
+  } else if (passProbability >= 50) {
+    recommendation = weakest ? `${weakest.subject}（正答率${weakest.accuracy}%）を重点的に強化すれば合格圏内に入れます。` : "全体的にもう少し演習量を増やしましょう。";
+  } else {
+    recommendation = weakest ? `まず${weakest.subject}の基礎固めから始めましょう。毎日5問ずつ解くことを目標に。` : "練習問題を繰り返し解いて基礎力をつけましょう。";
+  }
+
+  return { overallScore, passProbability, subjectScores, recommendation, questionsNeeded };
+}
+
+// ── 学習パス ─────────────────────────────────
+
+export interface StudyTask {
+  type: "practice" | "flashcard" | "review" | "chat";
+  subject: string;
+  topic?: string;
+  reason: string;
+  difficulty: number;
+  estimatedMinutes: number;
+}
+
+export interface StudyPath {
+  dailyTasks: StudyTask[];
+  weeklyGoals: { subject: string; targetAccuracy: number; currentAccuracy: number; questionsToSolve: number }[];
+  daysUntilExam: number | null;
+  focusAreas: string[];
+}
+
+export async function generateStudyPath(
+  supabase: SupabaseClient,
+  userId: string,
+  examId: string
+): Promise<StudyPath> {
+  const [prediction, weakPoints, profileData, flashcardData] = await Promise.all([
+    getPrediction(supabase, userId, examId),
+    getWeakPoints(supabase, userId, examId, 10),
+    supabase.from("profiles").select("target_exam_date").eq("id", userId).single(),
+    supabase.from("flashcards").select("id").eq("user_id", userId).eq("exam_id", examId).lte("next_review_at", new Date().toISOString()),
+  ]);
+
+  const req = PASS_REQUIREMENTS[examId];
+  const passTarget = req?.passingScore || 60;
+
+  // 試験日までの日数
+  let daysUntilExam: number | null = null;
+  if (profileData.data?.target_exam_date) {
+    const examDate = new Date(profileData.data.target_exam_date);
+    daysUntilExam = Math.max(0, Math.ceil((examDate.getTime() - Date.now()) / 86_400_000));
+  }
+
+  // 弱点から重点科目を特定（上位3つ）
+  const focusAreas = prediction.subjectScores
+    .filter((s) => s.questionsAnswered >= 2 && !s.isAbovePassLine)
+    .sort((a, b) => a.gapToPassLine - b.gapToPassLine)
+    .slice(0, 3)
+    .map((s) => s.subject);
+
+  // もし弱点データが足りなければ未回答科目を追加
+  if (focusAreas.length < 3) {
+    const unAnswered = prediction.subjectScores.filter((s) => s.questionsAnswered < 2).map((s) => s.subject);
+    focusAreas.push(...unAnswered.slice(0, 3 - focusAreas.length));
+  }
+
+  // 今日のタスク生成
+  const dailyTasks: StudyTask[] = [];
+  const flashcardsDue = flashcardData.data?.length || 0;
+
+  if (flashcardsDue > 0) {
+    dailyTasks.push({
+      type: "flashcard", subject: "復習", reason: `${flashcardsDue}枚のカードが復習期限`,
+      difficulty: 3, estimatedMinutes: Math.ceil(flashcardsDue * 0.5),
+    });
+  }
+
+  for (const area of focusAreas.slice(0, 2)) {
+    const wp = weakPoints.find((w) => w.subject === area);
+    const diff = await getRecommendedDifficulty(supabase, userId, examId, area);
+    dailyTasks.push({
+      type: "practice", subject: area, topic: wp?.topic,
+      reason: wp ? `正答率${wp.accuracyPct}% — 強化が必要` : "未学習 — まず基礎から",
+      difficulty: diff, estimatedMinutes: 15,
+    });
+  }
+
+  if (dailyTasks.length < 4 && focusAreas.length > 0) {
+    dailyTasks.push({
+      type: "chat", subject: focusAreas[0],
+      reason: "つまずきやすい論点をAIに質問",
+      difficulty: 3, estimatedMinutes: 10,
+    });
+  }
+
+  // 週間目標
+  const weeklyGoals = prediction.subjectScores
+    .filter((s) => !s.isAbovePassLine || s.questionsAnswered < 5)
+    .slice(0, 5)
+    .map((s) => ({
+      subject: s.subject,
+      targetAccuracy: Math.min(s.accuracy + 15, passTarget + 10),
+      currentAccuracy: s.accuracy,
+      questionsToSolve: Math.max(10, Math.ceil((passTarget - s.accuracy) * 0.5)),
+    }));
+
+  return { dailyTasks, weeklyGoals, daysUntilExam, focusAreas };
+}
+
+export async function getTodayTasks(
+  supabase: SupabaseClient,
+  userId: string,
+  examId: string
+): Promise<StudyTask[]> {
+  const path = await generateStudyPath(supabase, userId, examId);
+  return path.dailyTasks;
+}
+
+// ── 既存関数 ─────────────────────────────────
+
 export async function updateStreak(
   supabase: SupabaseClient,
   userId: string,
