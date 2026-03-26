@@ -11,23 +11,50 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"otp" | "password">("otp");
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
 
-    if (error) {
-      setError(error.message);
+    if (mode === "password" && password) {
+      // パスワードログイン
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        // ログイン失敗→新規登録を試行
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        if (signUpError) {
+          setError(signUpError.message);
+        } else {
+          setSent(true);
+        }
+      } else {
+        window.location.href = "/dashboard";
+      }
     } else {
-      setSent(true);
+      // OTPログイン
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        setSent(true);
+      }
     }
     setLoading(false);
   };
@@ -82,6 +109,23 @@ export default function LoginPage() {
               />
             </div>
 
+            {mode === "password" && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium mb-2">
+                  パスワード
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="パスワード"
+                  required={mode === "password"}
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
+                />
+              </div>
+            )}
+
             {error && (
               <p className="text-sm text-[var(--color-danger)]">{error}</p>
             )}
@@ -91,7 +135,15 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "送信中..." : "ログインリンクを送信"}
+              {loading ? "送信中..." : mode === "password" ? "ログイン" : "ログインリンクを送信"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode(mode === "otp" ? "password" : "otp")}
+              className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+            >
+              {mode === "otp" ? "パスワードでログイン" : "メールリンクでログイン"}
             </button>
 
             <p className="text-xs text-[var(--color-text-muted)] text-center">

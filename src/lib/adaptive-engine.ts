@@ -52,6 +52,26 @@ export const PASS_REQUIREMENTS: Record<string, {
     passingScore: 60, subjectWeights: { "基礎看護学": 1, "成人看護学": 1.2, "老年看護学": 1, "母性看護学": 1, "小児看護学": 1, "精神看護学": 1, "在宅看護論": 1, "健康支援と社会保障": 1 },
     description: "必修80%以上 + 一般問題65%前後"
   },
+  "it-passport": {
+    passingScore: 60, subjectWeights: { "ストラテジ系": 1, "マネジメント系": 1, "テクノロジ系": 1.2 },
+    minSubjectScore: 30, description: "総合600点以上/1000点 + 各分野300点以上"
+  },
+  "kihon-jouhou": {
+    passingScore: 60, subjectWeights: { "基礎理論": 1.2, "コンピュータシステム": 1, "技術要素": 1.2, "開発技術": 1, "マネジメント": 0.8, "ストラテジ": 0.8, "科目B（アルゴリズム）": 1.5 },
+    description: "科目A・科目Bともに600点以上/1000点"
+  },
+  "boki2": {
+    passingScore: 70, subjectWeights: { "商業簿記": 1.2, "工業簿記": 1 },
+    description: "70点以上/100点で合格"
+  },
+  "boki3": {
+    passingScore: 70, subjectWeights: { "簿記の基礎": 1, "取引と仕訳": 1.2, "決算": 1 },
+    description: "70点以上/100点で合格"
+  },
+  "touroku-hanbai": {
+    passingScore: 70, subjectWeights: { "医薬品に共通する特性と基本的な知識": 1, "人体の働きと医薬品": 1.2, "主な医薬品とその作用": 1.5, "薬事関連法規・制度": 1, "医薬品の適正使用・安全対策": 1 },
+    minSubjectScore: 35, description: "総合70%以上 + 各科目35〜40%以上"
+  },
 };
 
 /**

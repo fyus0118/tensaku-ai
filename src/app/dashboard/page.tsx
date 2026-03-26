@@ -13,6 +13,11 @@ import {
   Layers,
   BarChart3,
   Flame,
+  Shield,
+  Brain,
+  Clock,
+  Sparkles,
+  GraduationCap,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { getPrediction, generateStudyPath, type PassPrediction, type StudyPath } from "@/lib/adaptive-engine";
@@ -65,6 +70,15 @@ export default async function DashboardPage() {
       // DB未構築時はスキップ
     }
   }
+
+  const EXAM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+    "yobi-shihou": Shield, "shihou-shiken": Shield, "shindan-shi": BarChart3,
+    "kounin-kaikeishi": TrendingUp, "takken": Layers, "gyousei-shoshi": PenTool,
+    "sharoshi": Brain, "fp2": Sparkles, "koumuin": GraduationCap,
+    "ishi": Target, "kangoshi": Clock,
+    "it-passport": Layers, "kihon-jouhou": Layers, "boki2": TrendingUp, "boki3": TrendingUp, "touroku-hanbai": Brain,
+    "daigaku-nyushi": PenTool, "daigaku-report": MessageCircle,
+  };
 
   const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
   const otherExams = EXAM_CATEGORIES.filter((e) => !e.isNational);
@@ -402,7 +416,7 @@ export default async function DashboardPage() {
                     : "border-[var(--color-border)] bg-[var(--color-bg-card)]"
                 }`}
               >
-                <span className="text-2xl mb-2 block">{exam.icon}</span>
+                {(() => { const IC = EXAM_ICONS[exam.id] || Target; return <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-2"><IC className="w-4 h-4 text-[var(--color-accent)]" /></div>; })()}
                 <p className="text-sm font-bold">{exam.shortName}</p>
                 <p className="text-xs text-[var(--color-text-muted)] mt-1">
                   {exam.subjects.length}科目
@@ -427,7 +441,7 @@ export default async function DashboardPage() {
                 }
                 className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors"
               >
-                <span className="text-2xl mb-2 block">{exam.icon}</span>
+                {(() => { const IC = EXAM_ICONS[exam.id] || Target; return <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-2"><IC className="w-4 h-4 text-[var(--color-accent)]" /></div>; })()}
                 <p className="text-sm font-bold">{exam.shortName}</p>
                 <p className="text-xs text-[var(--color-text-muted)] mt-1">
                   {exam.description.slice(0, 20)}...

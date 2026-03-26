@@ -243,6 +243,94 @@ export const EXAM_CATEGORIES: ExamCategory[] = [
       { id: "kenko-shien", name: "健康支援と社会保障", topics: ["公衆衛生", "社会保障", "関係法規"] },
     ],
   },
+  // === IT・情報処理 ===
+  {
+    id: "it-passport",
+    name: "ITパスポート試験",
+    shortName: "ITパスポート",
+    description: "IT系国家資格の登竜門。全社会人に推奨される基礎的IT力",
+    icon: "💻",
+    color: "#6366f1",
+    isNational: true,
+    examMonth: null, // CBT方式で通年
+    hasEssay: false,
+    subjects: [
+      { id: "strategy", name: "ストラテジ系", topics: ["企業活動", "法務", "経営戦略", "システム戦略", "マーケティング"] },
+      { id: "management", name: "マネジメント系", topics: ["プロジェクトマネジメント", "サービスマネジメント", "システム監査"] },
+      { id: "technology", name: "テクノロジ系", topics: ["基礎理論", "アルゴリズム", "コンピュータシステム", "技術要素", "セキュリティ", "ネットワーク", "データベース"] },
+    ],
+  },
+  {
+    id: "kihon-jouhou",
+    name: "基本情報技術者試験",
+    shortName: "基本情報",
+    description: "ITエンジニアの登竜門。科目A+科目Bの2部構成",
+    icon: "🖥️",
+    color: "#6366f1",
+    isNational: true,
+    examMonth: null, // CBT通年
+    hasEssay: false,
+    subjects: [
+      { id: "kiso-riron", name: "基礎理論", topics: ["離散数学", "応用数学", "アルゴリズム", "プログラミング", "データ構造"] },
+      { id: "computer", name: "コンピュータシステム", topics: ["プロセッサ", "メモリ", "OS", "ハードウェア", "ソフトウェア"] },
+      { id: "gijutsu", name: "技術要素", topics: ["データベース", "ネットワーク", "セキュリティ", "マルチメディア"] },
+      { id: "kaihatsu", name: "開発技術", topics: ["システム開発", "ソフトウェア開発", "テスト手法", "開発プロセス"] },
+      { id: "management-ki", name: "マネジメント", topics: ["プロジェクトマネジメント", "サービスマネジメント", "システム監査"] },
+      { id: "strategy-ki", name: "ストラテジ", topics: ["システム戦略", "経営戦略", "企業と法務"] },
+      { id: "kamoku-b", name: "科目B（アルゴリズム）", topics: ["擬似言語", "トレース", "データ構造操作", "セキュリティ実践"] },
+    ],
+  },
+  // === 会計・簿記 ===
+  {
+    id: "boki2",
+    name: "日商簿記検定2級",
+    shortName: "簿記2級",
+    description: "経理・会計の実務レベル資格。商業簿記+工業簿記",
+    icon: "📒",
+    color: "#10b981",
+    isNational: false,
+    examMonth: null, // 年3回 + CBT
+    hasEssay: false,
+    subjects: [
+      { id: "shogyo-boki", name: "商業簿記", topics: ["仕訳", "決算整理", "財務諸表作成", "連結会計", "税効果会計", "リース会計", "外貨建取引"] },
+      { id: "kogyo-boki", name: "工業簿記", topics: ["費目別計算", "部門別計算", "個別原価計算", "総合原価計算", "標準原価計算", "直接原価計算", "CVP分析"] },
+    ],
+  },
+  {
+    id: "boki3",
+    name: "日商簿記検定3級",
+    shortName: "簿記3級",
+    description: "簿記の基礎。就職・転職で評価される入門資格",
+    icon: "📒",
+    color: "#10b981",
+    isNational: false,
+    examMonth: null,
+    hasEssay: false,
+    subjects: [
+      { id: "boki-kiso", name: "簿記の基礎", topics: ["仕訳", "勘定記入", "試算表", "精算表", "財務諸表"] },
+      { id: "shiwake", name: "取引と仕訳", topics: ["現金・預金", "売掛金・買掛金", "手形", "有価証券", "固定資産", "貸倒引当金", "減価償却"] },
+      { id: "kessan", name: "決算", topics: ["決算整理仕訳", "精算表作成", "損益計算書", "貸借対照表", "繰越試算表"] },
+    ],
+  },
+  // === 販売・流通 ===
+  {
+    id: "touroku-hanbai",
+    name: "登録販売者試験",
+    shortName: "登録販売者",
+    description: "一般用医薬品の販売に必須。ドラッグストア等で需要大",
+    icon: "💊",
+    color: "#ec4899",
+    isNational: true,
+    examMonth: 8, // 都道府県により異なるが8-12月
+    hasEssay: false,
+    subjects: [
+      { id: "iyakuhin-kiso", name: "医薬品に共通する特性と基本的な知識", topics: ["医薬品概論", "副作用", "適正使用", "薬害の歴史"] },
+      { id: "jinntai", name: "人体の働きと医薬品", topics: ["消化器系", "呼吸器系", "循環器系", "泌尿器系", "感覚器", "皮膚", "中枢神経系"] },
+      { id: "syuyaku", name: "主な医薬品とその作用", topics: ["かぜ薬", "解熱鎮痛薬", "胃腸薬", "アレルギー用薬", "皮膚用薬", "点眼薬", "漢方薬"] },
+      { id: "yakuji-hourei", name: "薬事関連法規・制度", topics: ["医薬品医療機器等法", "販売業の許可", "販売制度", "リスク区分"] },
+      { id: "tekisei-shiyo", name: "医薬品の適正使用・安全対策", topics: ["添付文書の読み方", "副作用報告制度", "医薬品副作用被害救済制度"] },
+    ],
+  },
   // === 入試（既存機能の拡張） ===
   {
     id: "daigaku-nyushi",

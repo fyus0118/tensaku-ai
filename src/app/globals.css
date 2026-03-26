@@ -100,3 +100,85 @@ body {
   font-size: 0.9em;
 }
 .chat-result strong { color: var(--color-text); }
+
+/* ── Gradient Icon Containers ── */
+.icon-glow {
+  position: relative;
+  overflow: hidden;
+}
+.icon-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(225, 29, 72, 0.2), transparent 70%);
+  border-radius: inherit;
+}
+
+.icon-glow-blue::before {
+  background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.2), transparent 70%);
+}
+.icon-glow-emerald::before {
+  background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.2), transparent 70%);
+}
+.icon-glow-amber::before {
+  background: radial-gradient(circle at 30% 30%, rgba(245, 158, 11, 0.2), transparent 70%);
+}
+
+/* ── Card hover shine ── */
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.card-shine:hover::after {
+  opacity: 1;
+}
+
+/* ── Mesh gradient hero ── */
+.mesh-hero {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(225, 29, 72, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(99, 102, 241, 0.06), transparent),
+    radial-gradient(ellipse 50% 50% at 20% 80%, rgba(16, 185, 129, 0.04), transparent);
+}
+
+/* ── Grid pattern ── */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* ── Floating animation ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ── Exam icon badge ── */
+.exam-badge {
+  position: relative;
+  background: linear-gradient(135deg, var(--color-bg-card), var(--color-bg-secondary));
+  border: 1px solid var(--color-border);
+  transition: all 0.3s;
+}
+.exam-badge:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 24px rgba(225, 29, 72, 0.1);
+  transform: translateY(-2px);
+}
