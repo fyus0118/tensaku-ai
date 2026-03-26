@@ -15,6 +15,7 @@ import {
   Flame,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
+import { getPrediction, generateStudyPath, type PassPrediction, type StudyPath } from "@/lib/adaptive-engine";
 
 export const metadata: Metadata = {
   title: "ダッシュボード",
@@ -50,6 +51,20 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(5);
+
+  // 合格予測 + 学習パス
+  let prediction: PassPrediction | null = null;
+  let studyPath: StudyPath | null = null;
+  if (profile?.target_exam) {
+    try {
+      [prediction, studyPath] = await Promise.all([
+        getPrediction(supabase, user.id, profile.target_exam),
+        generateStudyPath(supabase, user.id, profile.target_exam),
+      ]);
+    } catch {
+      // DB未構築時はスキップ
+    }
+  }
 
   const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
   const otherExams = EXAM_CATEGORIES.filter((e) => !e.isNational);
@@ -224,6 +239,142 @@ export default async function DashboardPage() {
                   <p className="text-xs text-[var(--color-text-muted)]">
                     最長記録: {profile?.longest_streak || 0}日
                   </p>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 合格予測 */}
+        {prediction && prediction.subjectScores.length > 0 && targetExam && (
+          <section className="mb-12">
+            <h2 className="text-2xl font-black mb-6">合格予測</h2>
+
+            {/* Overall Score */}
+            <div className="grid sm:grid-cols-3 gap-4 mb-6">
+              <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
+                <p className="text-xs text-[var(--color-text-muted)] mb-2">総合スコア</p>
+                <p className="text-4xl font-black" style={{
+                  color: prediction.overallScore >= 70 ? "var(--color-success)" : prediction.overallScore >= 50 ? "var(--color-warning)" : "var(--color-danger)"
+                }}>
+                  {prediction.overallScore}<span className="text-lg text-[var(--color-text-muted)]">%</span>
+                </p>
+              </div>
+              <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
+                <p className="text-xs text-[var(--color-text-muted)] mb-2">合格確率</p>
+                <p className="text-4xl font-black" style={{
+                  color: prediction.passProbability >= 70 ? "var(--color-success)" : prediction.passProbability >= 40 ? "var(--color-warning)" : "var(--color-danger)"
+                }}>
+                  {prediction.passProbability}<span className="text-lg text-[var(--color-text-muted)]">%</span>
+                </p>
+              </div>
+              <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
+                <p className="text-xs text-[var(--color-text-muted)] mb-2">
+                  {studyPath?.daysUntilExam !== null ? "試験まで" : "追加演習目安"}
+                </p>
+                <p className="text-4xl font-black text-[var(--color-text)]">
+                  {studyPath?.daysUntilExam != null ? (
+                    <>{studyPath!.daysUntilExam}<span className="text-lg text-[var(--color-text-muted)]">日</span></>
+                  ) : (
+                    <>{prediction!.questionsNeeded}<span className="text-lg text-[var(--color-text-muted)]">問</span></>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div className="p-4 rounded-xl bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/20 mb-6">
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                <span className="font-bold text-[var(--color-accent)]">AI分析：</span>
+                {prediction.recommendation}
+              </p>
+            </div>
+
+            {/* Subject Scores */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              {prediction.subjectScores.filter(s => s.questionsAnswered > 0).map((s) => (
+                <div key={s.subject} className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">{s.subject}</p>
+                    <span className="text-xs text-[var(--color-text-muted)]">{s.questionsAnswered}問</span>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <span className="text-2xl font-black" style={{
+                      color: s.isAbovePassLine ? "var(--color-success)" : "var(--color-danger)"
+                    }}>
+                      {s.accuracy}%
+                    </span>
+                    <span className="text-xs mb-1" style={{
+                      color: s.gapToPassLine >= 0 ? "var(--color-success)" : "var(--color-danger)"
+                    }}>
+                      {s.gapToPassLine >= 0 ? `+${s.gapToPassLine}` : s.gapToPassLine}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 rounded-full bg-[var(--color-bg)]">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, s.accuracy)}%`,
+                        backgroundColor: s.isAbovePassLine ? "var(--color-success)" : "var(--color-danger)",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 今日のタスク */}
+        {studyPath && studyPath.dailyTasks.length > 0 && targetExam && (
+          <section className="mb-12">
+            <h2 className="text-2xl font-black mb-6">今日やるべきこと</h2>
+            <div className="space-y-3">
+              {studyPath.dailyTasks.map((task, i) => (
+                <Link
+                  key={i}
+                  href={
+                    task.type === "practice" ? `/study/practice?exam=${targetExam.id}` :
+                    task.type === "flashcard" ? `/study/flashcards?exam=${targetExam.id}` :
+                    task.type === "chat" ? `/study/chat?exam=${targetExam.id}&subject=${encodeURIComponent(task.subject)}` :
+                    `/study/review?exam=${targetExam.id}`
+                  }
+                  className="flex items-center gap-4 p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                    <span className="text-lg">
+                      {task.type === "practice" ? "🎯" : task.type === "flashcard" ? "🃏" : task.type === "chat" ? "💬" : "✏️"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">
+                      {task.type === "practice" ? "練習問題" : task.type === "flashcard" ? "暗記カード復習" : task.type === "chat" ? "AIに質問" : "添削"}
+                      {task.subject !== "復習" && ` — ${task.subject}`}
+                      {task.topic && ` > ${task.topic}`}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-muted)] truncate">{task.reason}</p>
+                  </div>
+                  <div className="text-xs text-[var(--color-text-muted)] shrink-0">
+                    ~{task.estimatedMinutes}分
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] shrink-0" />
+                </Link>
+              ))}
+            </div>
+
+            {/* 週間目標 */}
+            {studyPath.weeklyGoals.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-sm font-bold text-[var(--color-text-muted)] mb-3">今週の目標</h3>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {studyPath.weeklyGoals.map((goal) => (
+                    <div key={goal.subject} className="p-3 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+                      <p className="text-xs font-medium mb-1">{goal.subject}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">
+                        {goal.currentAccuracy}% → {goal.targetAccuracy}%（あと{goal.questionsToSolve}問）
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
