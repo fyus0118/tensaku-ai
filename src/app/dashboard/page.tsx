@@ -358,7 +358,7 @@ export default async function DashboardPage() {
                 >
                   <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
                     <span className="text-lg">
-                      {task.type === "practice" ? "🎯" : task.type === "flashcard" ? "🃏" : task.type === "chat" ? "💬" : "✏️"}
+                      {task.type === "practice" ? <Target className="w-5 h-5 text-[var(--color-accent)]" /> : task.type === "flashcard" ? <Layers className="w-5 h-5 text-[var(--color-accent)]" /> : task.type === "chat" ? <MessageCircle className="w-5 h-5 text-[var(--color-accent)]" /> : <PenTool className="w-5 h-5 text-[var(--color-accent)]" />}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
