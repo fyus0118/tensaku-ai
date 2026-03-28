@@ -69,11 +69,15 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setError(
-        error.message.includes("should be at least 6")
-          ? "パスワードは6文字以上で入力してください"
-          : "エラーが発生しました。しばらく待ってから再度お試しください"
-      );
+      if (error.message.includes("should be at least 6")) {
+        setError("パスワードは6文字以上で入力してください");
+      } else if (error.message.includes("same as") || error.message.includes("different")) {
+        setError("以前と同じパスワードは使用できません。別のパスワードを入力してください");
+      } else if (error.message.includes("session") || error.message.includes("token")) {
+        setError("セッションが切れました。ログインページからもう一度パスワードリセットをお試しください");
+      } else {
+        setError("エラーが発生しました。しばらく待ってから再度お試しください");
+      }
     } else {
       setDone(true);
     }

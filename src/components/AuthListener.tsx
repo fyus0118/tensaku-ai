@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function AuthListener() {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const supabase = createClient();
 
-    // onAuthStateChangeでPASSWORD_RECOVERYを検知（implicit flow対応）
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         router.push("/auth/reset-password");
@@ -18,12 +18,13 @@ export function AuthListener() {
     });
 
     // URLハッシュに type=recovery が含まれていたら即リダイレクト
-    if (window.location.hash.includes("type=recovery")) {
-      router.push("/auth/reset-password");
+    // ただし既にreset-passwordページにいる場合はページ側に任せる（ハッシュを消さないため）
+    if (window.location.hash.includes("type=recovery") && pathname !== "/auth/reset-password") {
+      router.push("/auth/reset-password" + window.location.hash);
     }
 
     return () => subscription.unsubscribe();
-  }, [router]);
+  }, [router, pathname]);
 
   return null;
 }
