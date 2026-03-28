@@ -38,10 +38,8 @@ export default function LoginPage() {
     const supabase = createClient();
 
     if (tab === "reset") {
-      // callbackでrecoveryと判別するためのcookie（10分有効）
-      document.cookie = "recovery_pending=1; path=/; max-age=600; SameSite=Lax";
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"}/auth/callback?type=recovery`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"}/auth/reset-password`,
       });
       if (error) {
         setError(toJapaneseError(error.message));
