@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Lock } from "lucide-react";
 import Link from "next/link";
@@ -11,6 +11,27 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Supabaseはrecoveryリンクからimplicit flowでハッシュフラグメントにトークンを付ける
+    // #access_token=xxx&type=recovery
+    // Supabase clientが自動でハッシュを検知してセッションを確立する
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setReady(true);
+      }
+    });
+
+    // 既にセッションがある場合（設定ページから来た場合等）
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setReady(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +74,22 @@ export default function ResetPasswordPage() {
             className="inline-block py-3 px-8 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors"
           >
             ダッシュボードへ
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6">
+        <div className="w-full max-w-md text-center">
+          <p className="text-[var(--color-text-muted)] mb-4">セッションを確認中...</p>
+          <Link
+            href="/login"
+            className="text-sm text-[var(--color-accent)] hover:underline"
+          >
+            ログインページに戻る
           </Link>
         </div>
       </main>

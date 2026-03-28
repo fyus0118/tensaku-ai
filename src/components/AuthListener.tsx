@@ -10,11 +10,17 @@ export function AuthListener() {
   useEffect(() => {
     const supabase = createClient();
 
+    // onAuthStateChangeでPASSWORD_RECOVERYを検知（implicit flow対応）
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         router.push("/auth/reset-password");
       }
     });
+
+    // URLハッシュに type=recovery が含まれていたら即リダイレクト
+    if (window.location.hash.includes("type=recovery")) {
+      router.push("/auth/reset-password");
+    }
 
     return () => subscription.unsubscribe();
   }, [router]);
