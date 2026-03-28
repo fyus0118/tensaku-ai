@@ -33,7 +33,8 @@ export default function OnboardingPage() {
   const [savingMsg, setSavingMsg] = useState(0);
 
   const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
-  const otherExams = EXAM_CATEGORIES.filter((e) => !e.isNational);
+  const certExams = EXAM_CATEGORIES.filter((e) => !e.isNational && !["daigaku-nyushi", "daigaku-report"].includes(e.id));
+  const essayExams = EXAM_CATEGORIES.filter((e) => ["daigaku-nyushi", "daigaku-report"].includes(e.id));
 
   useEffect(() => {
     if (step !== "saving") return;
@@ -161,10 +162,38 @@ export default function OnboardingPage() {
 
             <div>
               <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+                検定・資格
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {certExams.map((exam) => (
+                  <button
+                    key={exam.id}
+                    onClick={() => setSelectedExam(exam.id)}
+                    className={`p-4 rounded-xl border text-left transition-all ${
+                      selectedExam === exam.id
+                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
+                        : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
+                    }`}
+                  >
+                    {(() => { const IC = EXAM_ICON_MAP[exam.id]; return IC ? <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" /> : null; })()}
+                    <p className="text-sm font-bold">{exam.shortName}</p>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                      {exam.subjects.length}科目
+                    </p>
+                    {selectedExam === exam.id && (
+                      <CheckCircle className="w-4 h-4 text-[var(--color-accent)] mt-2" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
                 大学入試・レポート
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {otherExams.map((exam) => (
+                {essayExams.map((exam) => (
                   <button
                     key={exam.id}
                     onClick={() => setSelectedExam(exam.id)}
