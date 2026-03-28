@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { NativeInit } from "@/components/NativeInit";
+import { AuthListener } from "@/components/AuthListener";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -39,6 +40,7 @@ export default function RootLayout({
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <NativeInit />
+        <AuthListener />
         {children}
       </body>
     </html>

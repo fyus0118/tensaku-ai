@@ -38,7 +38,6 @@ export default function LoginPage() {
     const supabase = createClient();
 
     if (tab === "reset") {
-      document.cookie = "sb-recovery=1; path=/; max-age=600; SameSite=Lax";
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback`,
       });
