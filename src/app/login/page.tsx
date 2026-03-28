@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"login" | "signup" | "reset">("login");
   const [resetSent, setResetSent] = useState(false);
+  const [signupSent, setSignupSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,16 +56,20 @@ export default function LoginPage() {
         return;
       }
     } else {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) {
         setError(toJapaneseError(error.message));
-      } else {
+      } else if (data.session) {
+        // メール確認不要の場合（Confirm emailがOFFの場合）
         window.location.href = "/dashboard";
         return;
+      } else {
+        // メール確認が必要
+        setSignupSent(true);
       }
     }
 
@@ -114,7 +119,22 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {tab === "reset" ? (
+        {signupSent ? (
+          <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+            <h2 className="text-lg font-bold mb-2">確認メールを送信しました</h2>
+            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-4">
+              <span className="text-[var(--color-text)] font-medium">{email}</span>
+              に確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。
+            </p>
+            <button
+              type="button"
+              onClick={() => { setTab("login"); setSignupSent(false); setError(""); }}
+              className="text-sm text-[var(--color-accent)] hover:underline"
+            >
+              ログインに戻る
+            </button>
+          </div>
+        ) : tab === "reset" ? (
           resetSent ? (
             <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
               <h2 className="text-lg font-bold mb-2">メールを送信しました</h2>
