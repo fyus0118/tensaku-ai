@@ -1,18 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-
-function createAdminClient() {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll: () => [],
-        setAll: () => {},
-      },
-    }
-  );
-}
 
 export async function POST(request: Request) {
   const { email } = await request.json();
@@ -21,47 +7,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "メールアドレスを入力してください" }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com";
 
   // Admin APIでリカバリーリンク生成（レート制限なし）
-  const { data, error } = await supabase.auth.admin.generateLink({
-    type: "recovery",
-    email,
-    options: {
-      redirectTo: `${appUrl}/auth/reset-password`,
+  const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
     },
+    body: JSON.stringify({
+      email,
+      type: "recovery",
+      redirect_to: `${appUrl}/auth/reset-password`,
+    }),
   });
 
-  if (error) {
+  if (!linkRes.ok) {
     return NextResponse.json({ error: "エラーが発生しました" }, { status: 500 });
   }
 
-  // Supabase内蔵メール送信をトリガー（Admin APIのrecoverエンドポイント）
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/recover`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
-      },
-      body: JSON.stringify({
-        email,
-        gotrue_meta_security: { captcha_token: "" },
-      }),
-    }
-  );
+  const linkData = await linkRes.json();
+  const actionLink = linkData.action_link;
 
-  // recoverエンドポイントもレート制限される可能性がある
-  // その場合はgenerateLinkで生成したリンクのaction_linkを返す
-  if (!res.ok) {
-    // フォールバック: リンクを直接返してクライアント側でリダイレクト
-    return NextResponse.json({
-      action_link: data.properties?.action_link,
-      fallback: true,
-    });
+  if (!actionLink) {
+    return NextResponse.json({ error: "エラーが発生しました" }, { status: 500 });
+  }
+
+  // Supabaseのrecoverエンドポイントでメール送信を試みる
+  const mailRes = await fetch(`${supabaseUrl}/auth/v1/recover`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!mailRes.ok) {
+    // メール送信がレート制限された場合、リンクに直接遷移
+    return NextResponse.json({ action_link: actionLink, fallback: true });
   }
 
   return NextResponse.json({ success: true });
