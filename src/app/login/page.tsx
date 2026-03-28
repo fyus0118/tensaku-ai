@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, LogIn, UserPlus } from "lucide-react";
 import Link from "next/link";
 
 function toJapaneseError(msg: string): string {
@@ -23,59 +23,40 @@ function toJapaneseError(msg: string): string {
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
-
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"otp" | "password">("otp");
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [tab, setTab] = useState<"login" | "signup">("login");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     const supabase = createClient();
 
-    if (mode === "password" && password) {
-      if (isSignUp) {
-        // 新規登録
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-        });
-        if (signUpError) {
-          setError(toJapaneseError(signUpError.message));
-        } else {
-          window.location.href = "/dashboard";
-        }
+    if (tab === "login") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(toJapaneseError(error.message));
       } else {
-        // ログイン
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInError) {
-          setError(toJapaneseError(signInError.message));
-        } else {
-          window.location.href = "/dashboard";
-        }
+        window.location.href = "/dashboard";
+        return;
       }
     } else {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signUp({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) {
         setError(toJapaneseError(error.message));
       } else {
-        setSent(true);
+        window.location.href = "/dashboard";
+        return;
       }
     }
+
     setLoading(false);
   };
 
@@ -90,97 +71,82 @@ export default function LoginPage() {
           トップに戻る
         </Link>
 
-        <h1 className="text-3xl font-black mb-2">
-          TENS<span className="text-[var(--color-accent)]">AKU</span>
+        <h1 className="text-3xl font-black mb-8">
+          Study<span className="text-[var(--color-accent)]">Engines</span>
         </h1>
-        <p className="text-[var(--color-text-secondary)] mb-8">
-          メールアドレスでログイン・新規登録
-        </p>
 
-        {sent ? (
-          <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
-            <div className="w-12 h-12 rounded-xl bg-[var(--color-success)]/10 flex items-center justify-center mb-4">
-              <Mail className="w-6 h-6 text-[var(--color-success)]" />
-            </div>
-            <h2 className="text-lg font-bold mb-2">メールを確認してください</h2>
-            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-              <span className="text-[var(--color-text)] font-medium">{email}</span>
-              にログインリンクを送信しました。
-              メール内のリンクをクリックしてログインしてください。
-            </p>
+        {/* タブ切り替え */}
+        <div className="flex rounded-xl bg-[var(--color-bg-secondary)] p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => { setTab("login"); setError(""); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              tab === "login"
+                ? "bg-[var(--color-bg-card)] text-[var(--color-text)] shadow-sm"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+            }`}
+          >
+            <LogIn className="w-4 h-4" />
+            ログイン
+          </button>
+          <button
+            type="button"
+            onClick={() => { setTab("signup"); setError(""); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              tab === "signup"
+                ? "bg-[var(--color-bg-card)] text-[var(--color-text)] shadow-sm"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+            }`}
+          >
+            <UserPlus className="w-4 h-4" />
+            新規登録
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              メールアドレス
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
+            />
           </div>
-        ) : (
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium mb-2"
-              >
-                メールアドレス
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
-              />
-            </div>
 
-            {mode === "password" && (
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2">
-                  パスワード
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="パスワード"
-                  required={mode === "password"}
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
-                />
-              </div>
-            )}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium mb-2">
+              パスワード
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={tab === "signup" ? "6文字以上" : "パスワード"}
+              required
+              minLength={6}
+              className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
+            />
+          </div>
 
-            {error && (
-              <p className="text-sm text-[var(--color-danger)]">{error}</p>
-            )}
+          {error && (
+            <p className="text-sm text-[var(--color-danger)]">{error}</p>
+          )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "送信中..." : mode === "password" ? (isSignUp ? "新規登録" : "ログイン") : "ログインリンクを送信"}
-            </button>
-
-            {mode === "password" && (
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
-                className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
-              >
-                {isSignUp ? "アカウントをお持ちの方はこちら" : "新規登録はこちら"}
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => { setMode(mode === "otp" ? "password" : "otp"); setError(""); }}
-              className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
-            >
-              {mode === "otp" ? "パスワードでログイン" : "メールリンクでログイン"}
-            </button>
-
-            <p className="text-xs text-[var(--color-text-muted)] text-center">
-              アカウントがない場合は自動的に作成されます
-            </p>
-          </form>
-        )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "処理中..." : tab === "login" ? "ログイン" : "新規登録"}
+          </button>
+        </form>
       </div>
     </main>
   );
