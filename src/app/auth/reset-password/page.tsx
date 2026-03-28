@@ -18,8 +18,7 @@ export default function ResetPasswordPage() {
     const supabase = createClient();
 
     async function init() {
-      // ハッシュフラグメントからトークンを手動パース
-      // Supabaseはimplicit flowで #access_token=xxx&refresh_token=xxx&type=recovery を付ける
+      // 1. ハッシュフラグメントからトークンを手動パース（implicit flow）
       const hash = window.location.hash.substring(1);
       if (hash) {
         const params = new URLSearchParams(hash);
@@ -36,14 +35,28 @@ export default function ResetPasswordPage() {
             setInitError("リンクが無効または期限切れです。もう一度パスワードリセットをお試しください。");
             return;
           }
-          // ハッシュをURLから消す
           window.history.replaceState(null, "", window.location.pathname);
           setReady(true);
           return;
         }
       }
 
-      // ハッシュがない場合、既存セッションを確認（設定ページからの遷移等）
+      // 2. URLのcodeパラメータを処理（PKCE flow）
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setInitError("リンクが無効または期限切れです。もう一度パスワードリセットをお試しください。");
+          return;
+        }
+        // codeをURLから消す
+        window.history.replaceState(null, "", window.location.pathname);
+        setReady(true);
+        return;
+      }
+
+      // 3. 既存セッションを確認（callback経由のリダイレクト等）
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         setReady(true);
