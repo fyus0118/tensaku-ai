@@ -38,11 +38,18 @@ export default function LoginPage() {
     const supabase = createClient();
 
     if (tab === "reset") {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"}/auth/reset-password`,
+      const res = await fetch("/api/auth/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
-      if (error) {
-        setError(toJapaneseError(error.message));
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+      } else if (data.fallback && data.action_link) {
+        // レート制限時はリンクに直接遷移
+        window.location.href = data.action_link;
+        return;
       } else {
         setResetSent(true);
       }
