@@ -9,15 +9,12 @@ import {
   PenTool,
   Brain,
   Clock,
-  TrendingUp,
   CheckCircle,
   Shield,
   BarChart3,
-  Layers,
-  Sparkles,
-  GraduationCap,
 } from "lucide-react";
 import { EXAM_CATEGORIES } from "@/lib/exams";
+import { EXAM_ICON_MAP } from "@/components/ExamIcons";
 
 function FeatureCard({
   icon: Icon,
@@ -108,27 +105,8 @@ function ComparisonRow({
   );
 }
 
-// 試験アイコンをLucideに置き換えるマップ
-const EXAM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  "yobi-shihou": Shield,
-  "shihou-shiken": Shield,
-  "shindan-shi": BarChart3,
-  "kounin-kaikeishi": TrendingUp,
-  "takken": Layers,
-  "gyousei-shoshi": PenTool,
-  "sharoshi": Brain,
-  "fp2": Sparkles,
-  "koumuin": GraduationCap,
-  "ishi": Target,
-  "kangoshi": Clock,
-  "it-passport": Layers,
-  "kihon-jouhou": Layers,
-  "boki2": TrendingUp,
-  "boki3": TrendingUp,
-  "touroku-hanbai": Brain,
-  "daigaku-nyushi": PenTool,
-  "daigaku-report": MessageCircle,
-};
+// 試験アイコンはExamIconsから取得、フォールバック用
+const EXAM_ICONS = EXAM_ICON_MAP;
 
 export default function Home() {
   const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
