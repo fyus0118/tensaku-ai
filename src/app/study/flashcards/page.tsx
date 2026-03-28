@@ -126,7 +126,7 @@ function FlashcardsContent() {
               <Layers className="w-5 h-5 text-[var(--color-accent)]" />
               <h1 className="text-lg font-bold">
                 暗記カード
-                {exam && <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">{exam.icon} {exam.shortName}</span>}
+                {exam && <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">{exam.shortName}</span>}
               </h1>
             </div>
           </div>

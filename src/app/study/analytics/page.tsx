@@ -84,7 +84,7 @@ function AnalyticsContent() {
             <h1 className="text-lg font-bold">
               学習分析
               <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
-                {exam.icon} {exam.shortName}
+                {exam.shortName}
               </span>
             </h1>
           </div>

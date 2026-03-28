@@ -145,7 +145,7 @@ function PracticeContent() {
                 練習問題
                 {exam && (
                   <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
-                    {exam.icon} {exam.shortName}
+                    {exam.shortName}
                   </span>
                 )}
               </h1>

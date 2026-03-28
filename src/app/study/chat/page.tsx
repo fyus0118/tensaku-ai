@@ -178,7 +178,7 @@ function ChatContent() {
               AIチューター
               {exam && (
                 <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
-                  {exam.icon} {exam.shortName}
+                  {exam.shortName}
                   {subjectParam && ` / ${subjectParam}`}
                 </span>
               )}

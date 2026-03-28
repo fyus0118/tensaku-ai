@@ -12,6 +12,7 @@ import {
   Clock,
 } from "lucide-react";
 import { EXAM_CATEGORIES } from "@/lib/exams";
+import { EXAM_ICON_MAP } from "@/components/ExamIcons";
 import { createClient } from "@/lib/supabase/client";
 
 type Step = 1 | 2 | 3 | "saving";
@@ -145,7 +146,7 @@ export default function OnboardingPage() {
                         : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
                     }`}
                   >
-                    <span className="text-2xl block mb-1">{exam.icon}</span>
+                    {(() => { const IC = EXAM_ICON_MAP[exam.id]; return IC ? <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" /> : null; })()}
                     <p className="text-sm font-bold">{exam.shortName}</p>
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                       {exam.subjects.length}科目
@@ -173,7 +174,7 @@ export default function OnboardingPage() {
                         : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
                     }`}
                   >
-                    <span className="text-2xl block mb-1">{exam.icon}</span>
+                    {(() => { const IC = EXAM_ICON_MAP[exam.id]; return IC ? <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" /> : null; })()}
                     <p className="text-sm font-bold">{exam.shortName}</p>
                   </button>
                 ))}

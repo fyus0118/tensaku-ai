@@ -29,6 +29,7 @@ export default function LoginPage() {
 
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"otp" | "password">("otp");
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +39,8 @@ export default function LoginPage() {
     const supabase = createClient();
 
     if (mode === "password" && password) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
+      if (isSignUp) {
+        // 新規登録
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -51,10 +49,19 @@ export default function LoginPage() {
         if (signUpError) {
           setError(toJapaneseError(signUpError.message));
         } else {
-          setSent(true);
+          window.location.href = "/dashboard";
         }
       } else {
-        window.location.href = "/dashboard";
+        // ログイン
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) {
+          setError(toJapaneseError(signInError.message));
+        } else {
+          window.location.href = "/dashboard";
+        }
       }
     } else {
       const { error } = await supabase.auth.signInWithOtp({
@@ -148,12 +155,22 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "送信中..." : mode === "password" ? "ログイン" : "ログインリンクを送信"}
+              {loading ? "送信中..." : mode === "password" ? (isSignUp ? "新規登録" : "ログイン") : "ログインリンクを送信"}
             </button>
+
+            {mode === "password" && (
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+                className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+              >
+                {isSignUp ? "アカウントをお持ちの方はこちら" : "新規登録はこちら"}
+              </button>
+            )}
 
             <button
               type="button"
-              onClick={() => setMode(mode === "otp" ? "password" : "otp")}
+              onClick={() => { setMode(mode === "otp" ? "password" : "otp"); setError(""); }}
               className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
             >
               {mode === "otp" ? "パスワードでログイン" : "メールリンクでログイン"}

@@ -8,18 +8,13 @@ import {
   MessageCircle,
   Target,
   PenTool,
-  TrendingUp,
   ChevronRight,
   Layers,
   BarChart3,
   Flame,
-  Shield,
-  Brain,
-  Clock,
-  Sparkles,
-  GraduationCap,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
+import { EXAM_ICON_MAP } from "@/components/ExamIcons";
 import { getPrediction, generateStudyPath, type PassPrediction, type StudyPath } from "@/lib/adaptive-engine";
 
 export const metadata: Metadata = {
@@ -71,14 +66,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const EXAM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-    "yobi-shihou": Shield, "shihou-shiken": Shield, "shindan-shi": BarChart3,
-    "kounin-kaikeishi": TrendingUp, "takken": Layers, "gyousei-shoshi": PenTool,
-    "sharoshi": Brain, "fp2": Sparkles, "koumuin": GraduationCap,
-    "ishi": Target, "kangoshi": Clock,
-    "it-passport": Layers, "kihon-jouhou": Layers, "boki2": TrendingUp, "boki3": TrendingUp, "touroku-hanbai": Brain,
-    "daigaku-nyushi": PenTool, "daigaku-report": MessageCircle,
-  };
+  const EXAM_ICONS = EXAM_ICON_MAP;
 
   const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
   const otherExams = EXAM_CATEGORIES.filter((e) => !e.isNational);
@@ -543,7 +531,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="p-12 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
-              <TrendingUp className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
+              <BarChart3 className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
               <p className="text-[var(--color-text-secondary)] mb-2">
                 まだ学習履歴がありません
               </p>
