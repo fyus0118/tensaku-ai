@@ -39,7 +39,7 @@ export default function LoginPage() {
 
     if (tab === "reset") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"}/auth/reset-password`,
       });
       if (error) {
         setError(toJapaneseError(error.message));
@@ -58,7 +58,7 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"}/auth/callback` },
       });
       if (error) {
         setError(toJapaneseError(error.message));
