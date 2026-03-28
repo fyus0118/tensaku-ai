@@ -39,7 +39,7 @@ export default function LoginPage() {
 
     if (tab === "reset") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"}/auth/reset-password`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"}/auth/callback?type=recovery`,
       });
       if (error) {
         setError(toJapaneseError(error.message));

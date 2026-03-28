@@ -9,7 +9,11 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      // code交換失敗 → ログインページへ
+      return NextResponse.redirect(`${origin}/login`);
+    }
   }
 
   // パスワードリカバリーの場合、リセットページに飛ばす
