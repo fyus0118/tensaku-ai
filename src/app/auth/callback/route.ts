@@ -11,14 +11,19 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      // code交換失敗 → ログインページへ
       return NextResponse.redirect(`${origin}/login`);
     }
   }
 
-  // パスワードリカバリーの場合、リセットページに飛ばす
-  if (type === "recovery") {
-    return NextResponse.redirect(`${origin}/auth/reset-password`);
+  // recoveryの判定: URLパラメータ or cookie
+  const cookies = request.headers.get("cookie") || "";
+  const isRecovery = type === "recovery" || cookies.includes("recovery_pending=1");
+
+  if (isRecovery) {
+    const res = NextResponse.redirect(`${origin}/auth/reset-password`);
+    // cookieをクリア
+    res.cookies.set("recovery_pending", "", { path: "/", maxAge: 0 });
+    return res;
   }
 
   return NextResponse.redirect(`${origin}${next}`);
