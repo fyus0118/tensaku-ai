@@ -7,21 +7,26 @@ export async function GET(request: Request) {
   const type = searchParams.get("type");
   const next = searchParams.get("next") || "/dashboard";
 
+  let isRecovery = type === "recovery";
+
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return NextResponse.redirect(`${origin}/login`);
     }
-  }
 
-  // recoveryの判定: URLパラメータ or cookie
-  const cookies = request.headers.get("cookie") || "";
-  const isRecovery = type === "recovery" || cookies.includes("recovery_pending=1");
+    // recovery_sent_atが10分以内ならリカバリーフロー
+    if (!isRecovery && data.user?.recovery_sent_at) {
+      const elapsed = Date.now() - new Date(data.user.recovery_sent_at).getTime();
+      if (elapsed < 10 * 60 * 1000) {
+        isRecovery = true;
+      }
+    }
+  }
 
   if (isRecovery) {
     const res = NextResponse.redirect(`${origin}/auth/reset-password`);
-    // cookieをクリア
     res.cookies.set("recovery_pending", "", { path: "/", maxAge: 0 });
     return res;
   }
