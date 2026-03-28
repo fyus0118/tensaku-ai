@@ -12,25 +12,47 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [ready, setReady] = useState(false);
+  const [initError, setInitError] = useState("");
 
   useEffect(() => {
     const supabase = createClient();
 
-    // Supabaseはrecoveryリンクからimplicit flowでハッシュフラグメントにトークンを付ける
-    // #access_token=xxx&type=recovery
-    // Supabase clientが自動でハッシュを検知してセッションを確立する
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
-        setReady(true);
+    async function init() {
+      // ハッシュフラグメントからトークンを手動パース
+      // Supabaseはimplicit flowで #access_token=xxx&refresh_token=xxx&type=recovery を付ける
+      const hash = window.location.hash.substring(1);
+      if (hash) {
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        const type = params.get("type");
+
+        if (accessToken && refreshToken && type === "recovery") {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            setInitError("リンクが無効または期限切れです。もう一度パスワードリセットをお試しください。");
+            return;
+          }
+          // ハッシュをURLから消す
+          window.history.replaceState(null, "", window.location.pathname);
+          setReady(true);
+          return;
+        }
       }
-    });
 
-    // 既にセッションがある場合（設定ページから来た場合等）
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+      // ハッシュがない場合、既存セッションを確認（設定ページからの遷移等）
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setReady(true);
+      } else {
+        setInitError("セッションがありません。ログインページからパスワードリセットをお試しください。");
+      }
+    }
 
-    return () => subscription.unsubscribe();
+    init();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,18 +102,27 @@ export default function ResetPasswordPage() {
     );
   }
 
-  if (!ready) {
+  if (initError) {
     return (
       <main className="min-h-screen flex items-center justify-center px-6">
         <div className="w-full max-w-md text-center">
-          <p className="text-[var(--color-text-muted)] mb-4">セッションを確認中...</p>
+          <h1 className="text-2xl font-black mb-4">エラー</h1>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-6">{initError}</p>
           <Link
             href="/login"
-            className="text-sm text-[var(--color-accent)] hover:underline"
+            className="inline-block py-3 px-8 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors"
           >
-            ログインページに戻る
+            ログインページへ
           </Link>
         </div>
+      </main>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6">
+        <p className="text-[var(--color-text-muted)]">読み込み中...</p>
       </main>
     );
   }
