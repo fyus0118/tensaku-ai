@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { SiteHeader } from "@/components/SiteHeader";
+import { ChevronDown } from "lucide-react";
 import {
   Zap,
   ArrowRight,
@@ -133,6 +135,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen">
+      <SiteHeader />
       {/* Hero */}
       <section className="relative overflow-hidden mesh-hero">
         <div className="absolute inset-0 grid-pattern" />
@@ -387,14 +390,42 @@ export default function Home() {
             { q: "無料プランで何ができますか？", a: "3回まで全機能が使えます。AIチューター、練習問題、添削の全モードを試せます。" },
             { q: "解約はいつでもできますか？", a: "はい。いつでも解約可能。解約後も月末まで利用できます。" },
           ].map((faq) => (
-            <div
+            <details
               key={faq.q}
-              className="p-6 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)]"
+              className="faq-item p-6 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)] group"
             >
-              <h3 className="font-bold mb-2">{faq.q}</h3>
-              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+              <summary className="font-bold flex items-center justify-between">
+                {faq.q}
+                <ChevronDown className="faq-chevron w-5 h-5 text-[var(--color-text-muted)] shrink-0" />
+              </summary>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mt-3">
                 {faq.a}
               </p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="max-w-5xl mx-auto px-6 py-20">
+        <h2 className="text-3xl font-black text-center mb-14">利用者の声</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { name: "T.K.", exam: "予備試験受験生", text: "弱点が科目・分野単位で可視化されるので、闇雲に勉強しなくて済む。合格予測のスコアが上がっていくのがモチベーションになる。" },
+            { name: "S.M.", exam: "宅建受験生", text: "通勤電車の中で練習問題を解いてる。10分で5問、解説もその場で読める。紙の問題集を持ち歩かなくなった。" },
+            { name: "A.Y.", exam: "行政書士受験生", text: "条文の趣旨から丁寧に解説してくれるので、暗記じゃなく理解できる。予備校の先生より質問しやすい。" },
+          ].map((t) => (
+            <div key={t.name} className="card-shine p-6 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center text-sm font-bold text-[var(--color-accent)]">
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-bold">{t.name}</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">{t.exam}</p>
+                </div>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{t.text}</p>
             </div>
           ))}
         </div>

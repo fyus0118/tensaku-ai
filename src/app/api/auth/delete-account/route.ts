@@ -36,8 +36,8 @@ export async function POST() {
   if (profile?.stripe_subscription_id) {
     try {
       await stripe.subscriptions.cancel(profile.stripe_subscription_id);
-    } catch {
-      // サブスクリプションが既にキャンセル済みの場合は無視
+    } catch (err) {
+      console.error("Stripeサブスクリプションキャンセルエラー:", err);
     }
   }
 

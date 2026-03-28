@@ -1,7 +1,7 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 
 export default function Error({
   error,
@@ -11,26 +11,27 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    console.error("[TENSAKU Error]", error);
   }, [error]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center">
-      <div className="text-center px-6">
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="text-center max-w-md">
         <div className="w-16 h-16 rounded-2xl bg-[var(--color-danger)]/10 flex items-center justify-center mx-auto mb-6">
-          <span className="text-3xl">!</span>
+          <AlertTriangle className="w-8 h-8 text-[var(--color-danger)]" />
         </div>
         <h2 className="text-xl font-bold mb-2">エラーが発生しました</h2>
-        <p className="text-[var(--color-text-secondary)] text-sm mb-8 max-w-md">
-          予期しないエラーが発生しました。問題が続く場合はお問い合わせください。
+        <p className="text-sm text-[var(--color-text-secondary)] mb-6">
+          予期しないエラーが発生しました。再度お試しください。
         </p>
         <button
           onClick={reset}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold text-sm transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors"
         >
+          <RotateCcw className="w-4 h-4" />
           再試行
         </button>
       </div>
-    </main>
+    </div>
   );
 }

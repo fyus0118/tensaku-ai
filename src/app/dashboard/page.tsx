@@ -66,8 +66,8 @@ export default async function DashboardPage() {
         getPrediction(supabase, user.id, profile.target_exam),
         generateStudyPath(supabase, user.id, profile.target_exam),
       ]);
-    } catch {
-      // DB未構築時はスキップ
+    } catch (err) {
+      console.error("合格予測/学習パスの取得に失敗:", err);
     }
   }
 
@@ -146,11 +146,12 @@ export default async function DashboardPage() {
                 <span className="text-3xl">{targetExam.icon}</span>
                 {targetExam.shortName}
               </h2>
-              <button
-                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+              <Link
+                href="/onboarding"
+                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
               >
                 試験を変更
-              </button>
+              </Link>
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">

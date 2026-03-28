@@ -182,3 +182,53 @@ body {
   box-shadow: 0 0 24px rgba(225, 29, 72, 0.1);
   transform: translateY(-2px);
 }
+
+/* ── Flashcard 3D Flip ── */
+.flashcard-perspective {
+  perspective: 1000px;
+}
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+.flashcard-inner.flipped {
+  transform: rotateY(180deg);
+}
+.flashcard-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.flashcard-front {
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-card);
+}
+.flashcard-back {
+  border: 2px solid var(--color-accent);
+  background: var(--color-bg-card);
+  transform: rotateY(180deg);
+}
+
+/* ── FAQ Accordion ── */
+details.faq-item summary {
+  cursor: pointer;
+  list-style: none;
+}
+details.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+details.faq-item[open] .faq-chevron {
+  transform: rotate(180deg);
+}
+.faq-chevron {
+  transition: transform 0.2s ease;
+}

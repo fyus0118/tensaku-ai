@@ -13,6 +13,7 @@ import {
   Trophy,
   AlertTriangle,
 } from "lucide-react";
+import { SubjectAccuracyChart, ScoreHistoryChart } from "./charts";
 import { getExamById } from "@/lib/exams";
 
 interface AnalyticsData {
@@ -104,49 +105,10 @@ function AnalyticsContent() {
           <StatCard icon={Trophy} label="最長記録" value={`${overview.longestStreak}日`} color="var(--color-accent)" />
         </div>
 
-        {/* Subject Accuracy Heatmap */}
+        {/* Subject Accuracy Chart */}
         <section>
           <h2 className="text-xl font-bold mb-4">科目別正答率</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {subjectAccuracy.length > 0 ? (
-              subjectAccuracy
-                .sort((a, b) => a.accuracy - b.accuracy)
-                .map((s) => (
-                  <div
-                    key={s.subject}
-                    className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]"
-                  >
-                    <p className="text-sm font-medium mb-2">{s.subject}</p>
-                    <div className="flex items-end justify-between">
-                      <span
-                        className="text-2xl font-black"
-                        style={{
-                          color: s.accuracy >= 80 ? "var(--color-success)" : s.accuracy >= 60 ? "var(--color-warning)" : "var(--color-danger)",
-                        }}
-                      >
-                        {s.accuracy}%
-                      </span>
-                      <span className="text-xs text-[var(--color-text-muted)]">
-                        {s.correct}/{s.total}問
-                      </span>
-                    </div>
-                    <div className="mt-2 h-2 bg-[var(--color-bg)] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${s.accuracy}%`,
-                          background: s.accuracy >= 80 ? "var(--color-success)" : s.accuracy >= 60 ? "var(--color-warning)" : "var(--color-danger)",
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <p className="col-span-full text-sm text-[var(--color-text-muted)]">
-                まだデータがありません
-              </p>
-            )}
-          </div>
+          <SubjectAccuracyChart data={subjectAccuracy} />
         </section>
 
         {/* Weak Points */}
@@ -183,31 +145,11 @@ function AnalyticsContent() {
           </section>
         )}
 
-        {/* Score History (Text-based chart) */}
+        {/* Score History Chart */}
         {scoreHistory.length > 0 && (
           <section>
             <h2 className="text-xl font-bold mb-4">正答率の推移</h2>
-            <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
-              <div className="flex items-end gap-1 h-40">
-                {scoreHistory.slice(-14).map((day, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full flex flex-col-reverse" style={{ height: "120px" }}>
-                      <div
-                        className="w-full rounded-t-sm min-h-[2px]"
-                        style={{
-                          height: `${day.accuracy * 1.2}px`,
-                          background: day.accuracy >= 80 ? "var(--color-success)" : day.accuracy >= 60 ? "var(--color-warning)" : "var(--color-danger)",
-                          opacity: 0.8,
-                        }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-[var(--color-text-muted)]">
-                      {day.date.slice(5)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ScoreHistoryChart data={scoreHistory} />
           </section>
         )}
       </div>

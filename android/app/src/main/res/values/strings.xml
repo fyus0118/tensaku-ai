@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TENSAKU</string>
+    <string name="title_activity_main">TENSAKU</string>
+    <string name="package_name">ai.tensaku.app</string>
+    <string name="custom_url_scheme">ai.tensaku.app</string>
+</resources>

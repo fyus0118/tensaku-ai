@@ -84,8 +84,8 @@ function FlashcardsContent() {
         setCurrentIndex(0);
         setPhase("review");
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("カード生成エラー:", err);
     }
     setGenerating(false);
   };
@@ -197,17 +197,13 @@ function FlashcardsContent() {
         {/* Review Mode */}
         {phase === "review" && currentCard && (
           <div className="w-full max-w-lg space-y-6">
-            {/* Card */}
-            <button
+            {/* Card - 3D Flip */}
+            <div
+              className="flashcard-perspective w-full cursor-pointer"
               onClick={() => setFlipped(!flipped)}
-              className="w-full min-h-[300px] p-8 rounded-2xl border-2 transition-all text-left flex flex-col justify-center"
-              style={{
-                borderColor: flipped ? "var(--color-accent)" : "var(--color-border)",
-                background: flipped ? "var(--color-accent)/5" : "var(--color-bg-card)",
-              }}
             >
-              {!flipped ? (
-                <>
+              <div className={`flashcard-inner ${flipped ? "flipped" : ""}`}>
+                <div className="flashcard-face flashcard-front text-left">
                   <p className="text-xs text-[var(--color-text-muted)] mb-4 uppercase tracking-wider">
                     {currentCard.subject} {currentCard.topic && `/ ${currentCard.topic}`}
                   </p>
@@ -215,18 +211,17 @@ function FlashcardsContent() {
                   <p className="text-xs text-[var(--color-text-muted)] mt-6">
                     タップして解答を表示
                   </p>
-                </>
-              ) : (
-                <>
+                </div>
+                <div className="flashcard-face flashcard-back text-left">
                   <p className="text-xs text-[var(--color-accent)] mb-4 uppercase tracking-wider font-bold">
                     解答
                   </p>
                   <p className="text-base leading-relaxed whitespace-pre-wrap">
                     {currentCard.back}
                   </p>
-                </>
-              )}
-            </button>
+                </div>
+              </div>
+            </div>
 
             {/* Review Buttons (shown after flip) */}
             {flipped && (

@@ -5,6 +5,22 @@ import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Mail } from "lucide-react";
 import Link from "next/link";
 
+function toJapaneseError(msg: string): string {
+  const map: Record<string, string> = {
+    "Invalid login credentials": "メールアドレスまたはパスワードが正しくありません",
+    "User already registered": "このメールアドレスは既に登録されています",
+    "Email not confirmed": "メールアドレスが確認されていません。受信箱を確認してください",
+    "Signup requires a valid password": "パスワードを入力してください",
+    "Password should be at least 6 characters": "パスワードは6文字以上で入力してください",
+    "Email rate limit exceeded": "送信回数の上限に達しました。しばらく待ってから再度お試しください",
+    "For security purposes, you can only request this after": "セキュリティのため、しばらく待ってから再度お試しください",
+  };
+  for (const [en, ja] of Object.entries(map)) {
+    if (msg.includes(en)) return ja;
+  }
+  return "エラーが発生しました。しばらく待ってから再度お試しください";
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,20 +38,18 @@ export default function LoginPage() {
     const supabase = createClient();
 
     if (mode === "password" && password) {
-      // パスワードログイン
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (signInError) {
-        // ログイン失敗→新規登録を試行
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
         });
         if (signUpError) {
-          setError(signUpError.message);
+          setError(toJapaneseError(signUpError.message));
         } else {
           setSent(true);
         }
@@ -43,7 +57,6 @@ export default function LoginPage() {
         window.location.href = "/dashboard";
       }
     } else {
-      // OTPログイン
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -51,7 +64,7 @@ export default function LoginPage() {
         },
       });
       if (error) {
-        setError(error.message);
+        setError(toJapaneseError(error.message));
       } else {
         setSent(true);
       }

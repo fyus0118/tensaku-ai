@@ -97,8 +97,8 @@ export async function POST(request: Request) {
       if (ragContext) {
         systemPrompt += ragContext;
       }
-    } catch {
-      // RAG失敗時はコンテキストなしで続行
+    } catch (err) {
+      console.error("RAGコンテキスト取得エラー:", err);
     }
   }
 
