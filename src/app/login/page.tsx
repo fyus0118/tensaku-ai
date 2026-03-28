@@ -38,7 +38,7 @@ export default function LoginPage() {
 
     if (tab === "reset") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/login`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
       });
       if (error) {
         setError(toJapaneseError(error.message));
