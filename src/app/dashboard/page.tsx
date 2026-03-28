@@ -12,6 +12,7 @@ import {
   Layers,
   BarChart3,
   Flame,
+  Settings,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { EXAM_ICON_MAP } from "@/components/ExamIcons";
@@ -94,6 +95,12 @@ export default async function DashboardPage() {
                 プロにアップグレード
               </Link>
             )}
+            <Link
+              href="/settings"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+            >
+              <Settings className="w-5 h-5" />
+            </Link>
             <form action="/api/auth/signout" method="POST">
               <button
                 type="submit"

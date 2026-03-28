@@ -30,7 +30,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const protectedPaths = ["/dashboard", "/review", "/study", "/onboarding"];
+  const protectedPaths = ["/dashboard", "/review", "/study", "/settings", "/onboarding"];
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
   // 未ログインで保護ページにアクセス → ログインへ
