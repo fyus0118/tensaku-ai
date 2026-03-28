@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "利用規約 | TENSAKU",
-  description: "TENSAKUの利用規約",
+  title: "利用規約 | StudyEngines",
+  description: "StudyEnginesの利用規約",
 };
 
 export default function TermsPage() {
@@ -22,7 +22,7 @@ export default function TermsPage() {
 
           <h2 className="text-lg font-bold text-[var(--color-text)] mt-8">第1条（適用）</h2>
           <p>
-            本規約は、TENSAKU（以下「当サービス」）の利用に関する条件を定めるものです。
+            本規約は、StudyEngines（以下「当サービス」）の利用に関する条件を定めるものです。
             ユーザーは本規約に同意の上、当サービスを利用するものとします。
           </p>
 

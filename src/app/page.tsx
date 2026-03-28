@@ -82,12 +82,12 @@ function ComparisonRow({
   feature,
   yobiko,
   chatgpt,
-  tensaku,
+  studyengines,
 }: {
   feature: string;
   yobiko: string;
   chatgpt: string;
-  tensaku: string;
+  studyengines: string;
 }) {
   return (
     <tr className="border-b border-[var(--color-border)]">
@@ -99,7 +99,7 @@ function ComparisonRow({
         {chatgpt}
       </td>
       <td className="py-4 px-4 text-sm text-[var(--color-accent)] font-bold text-center">
-        {tensaku}
+        {studyengines}
       </td>
     </tr>
   );
@@ -124,7 +124,7 @@ export default function Home() {
               無料で3回試せる
             </div>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-tight mb-6 animate-fade-in">
-              TENS<span className="text-[var(--color-accent)]">AKU</span>
+              Study<span className="text-[var(--color-accent)]">Engines</span>
             </h1>
             <p className="text-xl sm:text-2xl text-[var(--color-text-secondary)] mb-4 max-w-2xl mx-auto leading-relaxed animate-fade-in">
               国家試験・資格試験の
@@ -253,13 +253,13 @@ export default function Home() {
           ChatGPTに聞くのとは何が違う？
         </h2>
         <p className="text-[var(--color-text-secondary)] text-center mb-14 max-w-2xl mx-auto">
-          ChatGPTは汎用AI。TENSAKUは試験合格のためだけに設計されたAI。
+          ChatGPTは汎用AI。StudyEnginesは試験合格のためだけに設計されたAI。
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <FeatureCard icon={Brain} title="試験特化の知識" description="各試験の出題傾向・採点基準・頻出論点を深く理解。「試験でどう問われるか」の視点で全て回答。" />
           <FeatureCard icon={Target} title="無限の練習問題" description="本番と同じ形式・難易度のオリジナル問題をAIが生成。過去問を解き尽くしても、練習を止める必要がない。" glowClass="icon-glow-blue" />
           <FeatureCard icon={BarChart3} title="弱点の可視化" description="練習結果を自動分析。どの科目・分野が弱いか一目でわかり、効率的な学習ができる。" glowClass="icon-glow-emerald" />
-          <FeatureCard icon={PenTool} title="論述の即時添削" description="予備校は返却まで1〜2週間。TENSAKUは数十秒。深夜でも早朝でも、何度でも添削。" glowClass="icon-glow-amber" />
+          <FeatureCard icon={PenTool} title="論述の即時添削" description="予備校は返却まで1〜2週間。StudyEnginesは数十秒。深夜でも早朝でも、何度でも添削。" glowClass="icon-glow-amber" />
           <FeatureCard icon={Clock} title="24時間いつでも" description="深夜3時の追い込みでも、通勤電車の中でも。質問したい時にすぐ聞ける。予約不要。" />
           <FeatureCard icon={Shield} title="正確な引用" description="条文番号・判例名・会計基準を正確に引用。不確実な場合は正直に伝える。嘘の知識を教えない。" glowClass="icon-glow-blue" />
         </div>
@@ -282,18 +282,18 @@ export default function Home() {
                   ChatGPT
                 </th>
                 <th className="py-4 px-4 text-center text-sm font-medium">
-                  <span className="text-[var(--color-accent)] font-bold">TENSAKU</span>
+                  <span className="text-[var(--color-accent)] font-bold">StudyEngines</span>
                 </th>
               </tr>
             </thead>
             <tbody>
-              <ComparisonRow feature="月額料金" yobiko="3〜10万円" chatgpt="$20/月" tensaku="9,800円/月" />
-              <ComparisonRow feature="質問対応" yobiko="講義後のみ" chatgpt="即座" tensaku="即座" />
-              <ComparisonRow feature="試験特化度" yobiko="高い" chatgpt="低い" tensaku="高い" />
-              <ComparisonRow feature="練習問題生成" yobiko="なし" chatgpt="不安定" tensaku="本番形式で無限" />
-              <ComparisonRow feature="論述添削" yobiko="1〜2週間" chatgpt="曖昧" tensaku="数十秒" />
-              <ComparisonRow feature="弱点分析" yobiko="模試のみ" chatgpt="なし" tensaku="自動分析" />
-              <ComparisonRow feature="合格予測" yobiko="なし" chatgpt="なし" tensaku="リアルタイム" />
+              <ComparisonRow feature="月額料金" yobiko="3〜10万円" chatgpt="$20/月" studyengines="9,800円/月" />
+              <ComparisonRow feature="質問対応" yobiko="講義後のみ" chatgpt="即座" studyengines="即座" />
+              <ComparisonRow feature="試験特化度" yobiko="高い" chatgpt="低い" studyengines="高い" />
+              <ComparisonRow feature="練習問題生成" yobiko="なし" chatgpt="不安定" studyengines="本番形式で無限" />
+              <ComparisonRow feature="論述添削" yobiko="1〜2週間" chatgpt="曖昧" studyengines="数十秒" />
+              <ComparisonRow feature="弱点分析" yobiko="模試のみ" chatgpt="なし" studyengines="自動分析" />
+              <ComparisonRow feature="合格予測" yobiko="なし" chatgpt="なし" studyengines="リアルタイム" />
             </tbody>
           </table>
         </div>
@@ -361,7 +361,7 @@ export default function Home() {
         </h2>
         <div className="space-y-4">
           {[
-            { q: "ChatGPTで十分では？", a: "ChatGPTは汎用AIです。試験ごとの採点基準・出題傾向・頻出論点を理解していません。TENSAKUは各試験のプロとして回答するため、的外れな学習を防げます。" },
+            { q: "ChatGPTで十分では？", a: "ChatGPTは汎用AIです。試験ごとの採点基準・出題傾向・頻出論点を理解していません。StudyEnginesは各試験のプロとして回答するため、的外れな学習を防げます。" },
             { q: "どの試験に対応していますか？", a: "司法試験・予備試験、中小企業診断士、公認会計士、行政書士、社労士、宅建士、FP、公務員試験、医師・看護師国家試験、大学入試小論文に対応。順次追加中。" },
             { q: "AIが間違った知識を教えることはありませんか？", a: "100%正確とは保証できませんが、不確実な場合は正直に「要確認」と伝えます。条文・判例は番号まで引用するため、自分で検証もしやすい設計です。" },
             { q: "合格予測はどのくらい正確ですか？", a: "練習問題の正答率と各試験の合格ラインを比較して算出しています。問題数が増えるほど精度が上がります。" },
@@ -436,7 +436,7 @@ export default function Home() {
       <footer className="border-t border-[var(--color-border)] py-8">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-[var(--color-text-muted)]">
-            &copy; 2026 TENSAKU
+            &copy; 2026 StudyEngines
           </p>
           <div className="flex gap-6 text-sm text-[var(--color-text-muted)]">
             <Link href="/terms" className="hover:text-[var(--color-text-secondary)]">

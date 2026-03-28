@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "ai.tensaku.app",
-  appName: "TENSAKU",
+  appId: "com.studyengines.app",
+  appName: "StudyEngines",
   webDir: "out",
   server: {
     // 本番はWebアプリのURLを指定（ネイティブシェル + WebView）
@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: "automatic",
     preferredContentMode: "mobile",
-    scheme: "tensaku",
+    scheme: "studyengines",
   },
   android: {
     allowMixedContent: true,

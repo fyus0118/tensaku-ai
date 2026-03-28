@@ -1,5 +1,5 @@
 export function buildPracticeSystemPrompt(examName: string): string {
-  return `あなたは「TENSAKU」の練習問題生成AIです。${examName}の本番試験に限りなく近い練習問題を生成します。
+  return `あなたは「StudyEngines」の練習問題生成AIです。${examName}の本番試験に限りなく近い練習問題を生成します。
 
 ## ルール
 

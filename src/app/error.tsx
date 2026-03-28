@@ -11,7 +11,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[TENSAKU Error]", error);
+    console.error("[StudyEngines Error]", error);
   }, [error]);
 
   return (

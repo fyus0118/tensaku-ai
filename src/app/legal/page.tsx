@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "特定商取引法に基づく表記 | TENSAKU",
-  description: "TENSAKUの特定商取引法に基づく表記",
+  title: "特定商取引法に基づく表記 | StudyEngines",
+  description: "StudyEnginesの特定商取引法に基づく表記",
 };
 
 export default function LegalPage() {
@@ -21,10 +21,10 @@ export default function LegalPage() {
           <table className="w-full text-sm">
             <tbody className="divide-y divide-[var(--color-border)]">
               {[
-                ["販売事業者", "TENSAKU"],
+                ["販売事業者", "StudyEngines"],
                 ["運営責任者", "（氏名を記載）"],
                 ["所在地", "（住所を記載）"],
-                ["連絡先", "support@tensaku.ai"],
+                ["連絡先", "support@studyengines.com"],
                 ["販売価格", "プロプラン：月額9,800円（税込）"],
                 ["支払方法", "クレジットカード（Stripe経由）"],
                 ["支払時期", "申込時に初回決済、以降毎月自動更新"],

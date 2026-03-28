@@ -10,7 +10,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[TENSAKU Global Error]", error);
+    console.error("[StudyEngines Global Error]", error);
   }, [error]);
 
   return (

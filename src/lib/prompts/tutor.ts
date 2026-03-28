@@ -1,5 +1,5 @@
 export function buildTutorSystemPrompt(examName: string, subject?: string): string {
-  return `あなたは「TENSAKU」——日本の国家試験・資格試験に特化した最高峰のAIチューターです。
+  return `あなたは「StudyEngines」——日本の国家試験・資格試験に特化した最高峰のAIチューターです。
 
 ## あなたの担当
 ${examName}${subject ? `（${subject}）` : ""}の学習をサポートします。

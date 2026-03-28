@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "プライバシーポリシー | TENSAKU",
-  description: "TENSAKUのプライバシーポリシー",
+  title: "プライバシーポリシー | StudyEngines",
+  description: "StudyEnginesのプライバシーポリシー",
 };
 
 export default function PrivacyPage() {
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           <p>
             ユーザーはいつでもアカウントの削除を要求できます。
             削除要求を受けた場合、30日以内に全ての個人データを削除します。
-            お問い合わせは support@tensaku.ai までご連絡ください。
+            お問い合わせは support@studyengines.com までご連絡ください。
           </p>
 
           <h2 className="text-lg font-bold text-[var(--color-text)] mt-8">7. Cookie</h2>
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
 
           <h2 className="text-lg font-bold text-[var(--color-text)] mt-8">8. お問い合わせ</h2>
           <p>
-            プライバシーに関するお問い合わせは support@tensaku.ai までご連絡ください。
+            プライバシーに関するお問い合わせは support@studyengines.com までご連絡ください。
           </p>
         </div>
       </div>

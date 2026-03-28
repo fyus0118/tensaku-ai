@@ -19,7 +19,7 @@ import { getPrediction, generateStudyPath, type PassPrediction, type StudyPath }
 
 export const metadata: Metadata = {
   title: "ダッシュボード",
-  description: "TENSAKUの学習ダッシュボード。試験選択、学習モード、進捗確認。",
+  description: "StudyEnginesの学習ダッシュボード。試験選択、学習モード、進捗確認。",
 };
 
 export default async function DashboardPage() {
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
       <header className="border-b border-[var(--color-border)]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="text-xl font-black">
-            TENS<span className="text-[var(--color-accent)]">AKU</span>
+            Study<span className="text-[var(--color-accent)]">Engines</span>
           </Link>
           <div className="flex items-center gap-4">
             {isPro ? (

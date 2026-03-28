@@ -17,7 +17,7 @@ import { join, basename } from "path";
 const DATA_DIR = join(new URL(".", import.meta.url).pathname, "data");
 
 async function main() {
-  console.log("=== TENSAKU 過去問取り込みパイプライン ===\n");
+  console.log("=== StudyEngines 過去問取り込みパイプライン ===\n");
 
   // 環境変数チェック
   if (!process.env.VOYAGE_API_KEY) {
