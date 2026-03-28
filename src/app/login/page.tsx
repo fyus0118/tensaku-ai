@@ -26,7 +26,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<"login" | "signup">("login");
+  const [tab, setTab] = useState<"login" | "signup" | "reset">("login");
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +36,16 @@ export default function LoginPage() {
 
     const supabase = createClient();
 
-    if (tab === "login") {
+    if (tab === "reset") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/login`,
+      });
+      if (error) {
+        setError(toJapaneseError(error.message));
+      } else {
+        setResetSent(true);
+      }
+    } else if (tab === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(toJapaneseError(error.message));
@@ -103,50 +113,116 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              メールアドレス
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
-            />
-          </div>
+        {tab === "reset" ? (
+          resetSent ? (
+            <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+              <h2 className="text-lg font-bold mb-2">メールを送信しました</h2>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-4">
+                <span className="text-[var(--color-text)] font-medium">{email}</span>
+                にパスワードリセットのリンクを送信しました。メールを確認してください。
+              </p>
+              <button
+                type="button"
+                onClick={() => { setTab("login"); setResetSent(false); setError(""); }}
+                className="text-sm text-[var(--color-accent)] hover:underline"
+              >
+                ログインに戻る
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                登録したメールアドレスを入力してください。パスワードリセットのリンクを送信します。
+              </p>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium mb-2">
+                  メールアドレス
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-[var(--color-danger)]">{error}</p>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "送信中..." : "リセットリンクを送信"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTab("login"); setError(""); }}
+                className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+              >
+                ログインに戻る
+              </button>
+            </form>
+          )
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-2">
+                メールアドレス
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
+              />
+            </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
-              パスワード
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={tab === "signup" ? "6文字以上" : "パスワード"}
-              required
-              minLength={6}
-              className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
-            />
-          </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium mb-2">
+                パスワード
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={tab === "signup" ? "6文字以上" : "パスワード"}
+                required
+                minLength={6}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] transition-colors"
+              />
+            </div>
 
-          {error && (
-            <p className="text-sm text-[var(--color-danger)]">{error}</p>
-          )}
+            {error && (
+              <p className="text-sm text-[var(--color-danger)]">{error}</p>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "処理中..." : tab === "login" ? "ログイン" : "新規登録"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "処理中..." : tab === "login" ? "ログイン" : "新規登録"}
+            </button>
+
+            {tab === "login" && (
+              <button
+                type="button"
+                onClick={() => { setTab("reset"); setError(""); }}
+                className="w-full text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+              >
+                パスワードを忘れた方はこちら
+              </button>
+            )}
+          </form>
+        )}
       </div>
     </main>
   );
