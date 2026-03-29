@@ -1,20 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { NextRequest, NextResponse } from "next/server";
 import { getExamById } from "@/lib/exams";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const examId = searchParams.get("exam");
+export async function GET(request: NextRequest) {
+  const examId = request.nextUrl.searchParams.get("exam");
+  const origin = request.nextUrl.origin;
 
   if (!examId || !getExamById(examId)) {
-    redirect("/dashboard");
+    return NextResponse.redirect(`${origin}/dashboard`);
   }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    return NextResponse.redirect(`${origin}/login`);
   }
 
   await supabase
@@ -22,5 +22,5 @@ export async function GET(request: Request) {
     .update({ target_exam: examId })
     .eq("id", user.id);
 
-  redirect("/dashboard");
+  return NextResponse.redirect(`${origin}/dashboard`);
 }
