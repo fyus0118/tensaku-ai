@@ -73,8 +73,17 @@ export default async function DashboardPage() {
 
   const EXAM_ICONS = EXAM_ICON_MAP;
 
-  const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
-  const otherExams = EXAM_CATEGORIES.filter((e) => !e.isNational);
+  const examGroups = [
+    { label: "法律・労務", ids: ["yobi-shihou", "shihou-shiken", "shihou-shoshi", "gyousei-shoshi", "sharoshi", "benri-shi", "business-law", "chizai", "kojin-joho"] },
+    { label: "会計・金融", ids: ["kounin-kaikeishi", "zeirishi", "boki2", "boki3", "fp2", "gaimuin", "kashikin"] },
+    { label: "ビジネス・経営", ids: ["shindan-shi", "gijutsu-shi", "hanbaishi", "kikenbutsu", "mental-health"] },
+    { label: "不動産・建築", ids: ["takken", "kenchiku-shi", "mankan", "chintai"] },
+    { label: "IT", ids: ["it-passport", "sg", "kihon-jouhou", "ap", "st", "nw", "db", "aws", "python3"] },
+    { label: "公務員", ids: ["koumuin"] },
+    { label: "医療・福祉", ids: ["ishi", "kangoshi", "touroku-hanbai", "hoiku-shi"] },
+    { label: "語学", ids: ["toeic"] },
+    { label: "大学入試・レポート", ids: ["daigaku-nyushi", "daigaku-report"] },
+  ];
 
   return (
     <main className="min-h-screen">
@@ -427,53 +436,47 @@ export default async function DashboardPage() {
           </h2>
 
           {/* National Exams */}
-          <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-4">
-            国家試験・資格試験
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
-            {nationalExams.map((exam) => (
-              <Link
-                key={exam.id}
-                href={`/study/chat?exam=${exam.id}`}
-                className={`p-4 rounded-xl border transition-colors hover:border-[var(--color-accent)]/30 ${
-                  targetExam?.id === exam.id
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
-                    : "border-[var(--color-border)] bg-[var(--color-bg-card)]"
-                }`}
-              >
-                {(() => { const IC = EXAM_ICONS[exam.id] || Target; return <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-2"><IC className="w-4 h-4 text-[var(--color-accent)]" /></div>; })()}
-                <p className="text-sm font-bold">{exam.shortName}</p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                  {exam.subjects.length}科目
-                  {exam.examMonth && ` / ${exam.examMonth}月試験`}
-                </p>
-              </Link>
-            ))}
-          </div>
-
-          {/* University Exams */}
-          <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-4">
-            大学入試・レポート
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {otherExams.map((exam) => (
-              <Link
-                key={exam.id}
-                href={
-                  exam.id === "daigaku-nyushi"
-                    ? "/study/review?mode=essay"
-                    : "/study/review?mode=report"
-                }
-                className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors"
-              >
-                {(() => { const IC = EXAM_ICONS[exam.id] || Target; return <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-2"><IC className="w-4 h-4 text-[var(--color-accent)]" /></div>; })()}
-                <p className="text-sm font-bold">{exam.shortName}</p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                  {exam.description.slice(0, 20)}...
-                </p>
-              </Link>
-            ))}
-          </div>
+          {examGroups.map((group) => {
+            const exams = group.ids.map(id => EXAM_CATEGORIES.find(e => e.id === id)).filter(Boolean);
+            if (exams.length === 0) return null;
+            return (
+              <div key={group.label} className="mb-6">
+                <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+                  {group.label}
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {exams.map((exam) => {
+                    if (!exam) return null;
+                    const isUniversity = exam.id === "daigaku-nyushi" || exam.id === "daigaku-report";
+                    const href = isUniversity
+                      ? exam.id === "daigaku-nyushi" ? "/study/review?mode=essay" : "/study/review?mode=report"
+                      : `/study/chat?exam=${exam.id}`;
+                    const IC = EXAM_ICONS[exam.id] || Target;
+                    return (
+                      <Link
+                        key={exam.id}
+                        href={href}
+                        className={`p-4 rounded-xl border transition-colors hover:border-[var(--color-accent)]/30 ${
+                          targetExam?.id === exam.id
+                            ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
+                            : "border-[var(--color-border)] bg-[var(--color-bg-card)]"
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-2">
+                          <IC className="w-4 h-4 text-[var(--color-accent)]" />
+                        </div>
+                        <p className="text-sm font-bold leading-tight">{exam.name}</p>
+                        <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                          {exam.subjects.length}科目
+                          {exam.examMonth ? ` / ${exam.examMonth}月` : ""}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </section>
 
         {/* Account Settings */}
