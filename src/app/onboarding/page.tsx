@@ -23,6 +23,19 @@ const SAVING_MESSAGES = [
   "あなた専用の学習プランを作成中...",
 ];
 
+const EXAM_GROUPS = [
+  { label: "法律系", ids: ["yobi-shihou", "shihou-shiken", "shihou-shoshi", "gyousei-shoshi", "sharoshi", "benri-shi", "business-law", "chizai", "kojin-joho"] },
+  { label: "会計・財務系", ids: ["kounin-kaikeishi", "zeirishi", "boki2", "boki3", "fp2", "gaimuin", "kashikin"] },
+  { label: "経営・コンサルティング系", ids: ["shindan-shi", "gijutsu-shi", "hanbaishi", "mental-health"] },
+  { label: "不動産・建築系", ids: ["takken", "kenchiku-shi", "mankan", "chintai"] },
+  { label: "IT・情報処理系", ids: ["it-passport", "sg", "kihon-jouhou", "ap", "st", "nw", "db", "aws", "python3"] },
+  { label: "公務員系", ids: ["koumuin"] },
+  { label: "医療・看護・福祉系", ids: ["ishi", "kangoshi", "touroku-hanbai", "hoiku-shi"] },
+  { label: "安全・環境系", ids: ["kikenbutsu"] },
+  { label: "語学系", ids: ["toeic"] },
+  { label: "大学・教育系", ids: ["daigaku-nyushi", "daigaku-report"] },
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
@@ -31,10 +44,6 @@ export default function OnboardingPage() {
   const [dailyGoal, setDailyGoal] = useState(20);
   const [error, setError] = useState("");
   const [savingMsg, setSavingMsg] = useState(0);
-
-  const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
-  const certExams = EXAM_CATEGORIES.filter((e) => !e.isNational && !["daigaku-nyushi", "daigaku-report"].includes(e.id));
-  const essayExams = EXAM_CATEGORIES.filter((e) => ["daigaku-nyushi", "daigaku-report"].includes(e.id));
 
   useEffect(() => {
     if (step !== "saving") return;
@@ -73,7 +82,6 @@ export default function OnboardingPage() {
       return;
     }
 
-    // 演出のため少し待つ
     await new Promise((r) => setTimeout(r, 2000));
     router.push("/dashboard");
   };
@@ -125,90 +133,48 @@ export default function OnboardingPage() {
                 <GraduationCap className="w-8 h-8 text-[var(--color-accent)]" />
               </div>
               <h1 className="text-3xl font-black mb-2">
-                TENS<span className="text-[var(--color-accent)]">AKU</span>へようこそ
+                Study<span className="text-[var(--color-accent)]">Engines</span>へようこそ
               </h1>
               <p className="text-[var(--color-text-secondary)]">
                 目標の試験を選んでください
               </p>
             </div>
 
-            <div>
-              <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-                国家試験・資格試験
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {nationalExams.map((exam) => (
-                  <button
-                    key={exam.id}
-                    onClick={() => setSelectedExam(exam.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${
-                      selectedExam === exam.id
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
-                        : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
-                    }`}
-                  >
-                    {(() => { const IC = EXAM_ICON_MAP[exam.id]; return IC ? <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" /> : null; })()}
-                    <p className="text-sm font-bold">{exam.shortName}</p>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                      {exam.subjects.length}科目
-                    </p>
-                    {selectedExam === exam.id && (
-                      <CheckCircle className="w-4 h-4 text-[var(--color-accent)] mt-2" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-                検定・資格
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {certExams.map((exam) => (
-                  <button
-                    key={exam.id}
-                    onClick={() => setSelectedExam(exam.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${
-                      selectedExam === exam.id
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
-                        : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
-                    }`}
-                  >
-                    {(() => { const IC = EXAM_ICON_MAP[exam.id]; return IC ? <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" /> : null; })()}
-                    <p className="text-sm font-bold">{exam.shortName}</p>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                      {exam.subjects.length}科目
-                    </p>
-                    {selectedExam === exam.id && (
-                      <CheckCircle className="w-4 h-4 text-[var(--color-accent)] mt-2" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-                大学入試・レポート
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {essayExams.map((exam) => (
-                  <button
-                    key={exam.id}
-                    onClick={() => setSelectedExam(exam.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${
-                      selectedExam === exam.id
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
-                        : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
-                    }`}
-                  >
-                    {(() => { const IC = EXAM_ICON_MAP[exam.id]; return IC ? <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" /> : null; })()}
-                    <p className="text-sm font-bold">{exam.shortName}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
+            {EXAM_GROUPS.map((group) => {
+              const exams = group.ids.map(id => EXAM_CATEGORIES.find(e => e.id === id)).filter(Boolean);
+              if (exams.length === 0) return null;
+              return (
+                <div key={group.label}>
+                  <h3 className="text-sm font-bold mb-3">{group.label}</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {exams.map((exam) => {
+                      if (!exam) return null;
+                      const IC = EXAM_ICON_MAP[exam.id];
+                      return (
+                        <button
+                          key={exam.id}
+                          onClick={() => setSelectedExam(exam.id)}
+                          className={`p-4 rounded-xl border text-left transition-all ${
+                            selectedExam === exam.id
+                              ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
+                              : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
+                          }`}
+                        >
+                          {IC && <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" />}
+                          <p className="text-sm font-bold leading-tight">{exam.name}</p>
+                          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                            {exam.subjects.length}科目
+                          </p>
+                          {selectedExam === exam.id && (
+                            <CheckCircle className="w-4 h-4 text-[var(--color-accent)] mt-2" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
 
             <button
               onClick={() => setStep(2)}
