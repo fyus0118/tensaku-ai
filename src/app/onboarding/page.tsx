@@ -150,12 +150,13 @@ export default function OnboardingPage() {
                     {exams.map((exam) => {
                       if (!exam) return null;
                       const IC = EXAM_ICON_MAP[exam.id];
+                      const isSelected = selectedExam === exam.id;
                       return (
                         <button
                           key={exam.id}
-                          onClick={() => setSelectedExam(exam.id)}
+                          onClick={() => setSelectedExam(isSelected ? "" : exam.id)}
                           className={`p-4 rounded-xl border text-left transition-all ${
-                            selectedExam === exam.id
+                            isSelected
                               ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
                               : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
                           }`}
@@ -164,14 +165,36 @@ export default function OnboardingPage() {
                           <p className="text-sm font-bold leading-tight">{exam.name}</p>
                           <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                             {exam.subjects.length}科目
+                            {exam.examMonth ? ` / ${exam.examMonth}月試験` : ""}
                           </p>
-                          {selectedExam === exam.id && (
+                          {isSelected && (
                             <CheckCircle className="w-4 h-4 text-[var(--color-accent)] mt-2" />
                           )}
                         </button>
                       );
                     })}
                   </div>
+
+                  {/* 選択中の資格の概要を展開表示 */}
+                  {exams.map((exam) => {
+                    if (!exam || selectedExam !== exam.id) return null;
+                    return (
+                      <div key={`detail-${exam.id}`} className="mt-3 p-5 rounded-xl bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/20 animate-fade-in">
+                        <p className="text-sm font-bold mb-1">{exam.name}</p>
+                        <p className="text-xs text-[var(--color-text-secondary)] mb-3">{exam.description}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {exam.subjects.map((s) => (
+                            <span key={s.id} className="px-2 py-0.5 rounded-md bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[10px] text-[var(--color-text-secondary)]">
+                              {s.name}
+                            </span>
+                          ))}
+                        </div>
+                        {exam.hasEssay && (
+                          <p className="text-[10px] text-[var(--color-accent)] mt-2 font-medium">論述式あり — 添削モード対応</p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
