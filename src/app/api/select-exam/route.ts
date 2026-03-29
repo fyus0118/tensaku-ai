@@ -4,6 +4,8 @@ import { getExamById } from "@/lib/exams";
 
 export async function GET(request: NextRequest) {
   const examId = request.nextUrl.searchParams.get("exam");
+  const examDate = request.nextUrl.searchParams.get("date") || null;
+  const dailyGoal = parseInt(request.nextUrl.searchParams.get("goal") || "0") || null;
   const origin = request.nextUrl.origin;
   const isAjax = request.headers.get("accept")?.includes("application/json");
 
@@ -22,9 +24,13 @@ export async function GET(request: NextRequest) {
       : NextResponse.redirect(`${origin}/login`);
   }
 
+  const update: Record<string, unknown> = { target_exam: examId };
+  if (examDate) update.target_exam_date = examDate;
+  if (dailyGoal) update.daily_goal = dailyGoal;
+
   await supabase
     .from("profiles")
-    .update({ target_exam: examId })
+    .update(update)
     .eq("id", user.id);
 
   return isAjax
