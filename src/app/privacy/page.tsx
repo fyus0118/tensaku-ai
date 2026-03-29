@@ -17,7 +17,7 @@ export default function PrivacyPage() {
           &larr; トップに戻る
         </Link>
         <h1 className="text-3xl font-black mb-8">プライバシーポリシー</h1>
-        <div className="prose prose-invert prose-sm max-w-none space-y-6 text-[var(--color-text-secondary)] leading-relaxed">
+        <div className="prose prose-sm max-w-none space-y-6 text-[var(--color-text-secondary)] leading-relaxed">
           <p>最終更新日：2026年3月26日</p>
 
           <h2 className="text-lg font-bold text-[var(--color-text)] mt-8">1. 収集する情報</h2>

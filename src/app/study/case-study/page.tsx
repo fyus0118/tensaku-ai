@@ -207,7 +207,7 @@ function CaseStudyContent() {
               ) : (
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 mt-1"><Scale className="w-4 h-4 text-emerald-400" /></div>
-                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-invert prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown></div>
+                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown></div>
                 </div>
               )}
             </div>
@@ -216,7 +216,7 @@ function CaseStudyContent() {
           {streamingText && (
             <div className="mb-6 flex gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 mt-1"><Scale className="w-4 h-4 text-emerald-400" /></div>
-              <div className="chat-result text-sm flex-1 min-w-0 prose prose-invert prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingText}</ReactMarkdown></div>
+              <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingText}</ReactMarkdown></div>
             </div>
           )}
 

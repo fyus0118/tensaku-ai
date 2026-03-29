@@ -428,7 +428,7 @@ function ReviewContent() {
               </div>
             )}
             {result ? (
-              <div className="review-result text-sm prose prose-invert prose-sm max-w-none">
+              <div className="review-result text-sm prose prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {result}
                 </ReactMarkdown>

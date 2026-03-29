@@ -493,7 +493,7 @@ function TeachContent() {
                   <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 mt-1">
                     <UserRound className="w-4 h-4 text-amber-500" />
                   </div>
-                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-invert prose-sm max-w-none">
+                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.content}
                     </ReactMarkdown>
@@ -508,7 +508,7 @@ function TeachContent() {
               <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 mt-1">
                 <UserRound className="w-4 h-4 text-amber-500" />
               </div>
-              <div className="chat-result text-sm flex-1 min-w-0 prose prose-invert prose-sm max-w-none">
+              <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {streamingText}
                 </ReactMarkdown>

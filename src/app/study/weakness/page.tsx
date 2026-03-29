@@ -250,7 +250,7 @@ function WeaknessContent() {
           <div>
             {/* 問題文 */}
             <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] mb-6">
-              <div className="prose prose-invert prose-sm max-w-none">
+              <div className="prose prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentQuestion.question}</ReactMarkdown>
               </div>
             </div>
@@ -294,7 +294,7 @@ function WeaknessContent() {
               <div className="mb-6">
                 <div className="p-5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
                   <h4 className="font-bold text-sm mb-2">解説</h4>
-                  <div className="prose prose-invert prose-sm max-w-none">
+                  <div className="prose prose-sm max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentQuestion.explanation}</ReactMarkdown>
                   </div>
                 </div>

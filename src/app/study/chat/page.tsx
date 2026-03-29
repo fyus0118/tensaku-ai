@@ -241,7 +241,7 @@ function ChatContent() {
                   <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0 mt-1">
                     <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
                   </div>
-                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-invert prose-sm max-w-none">
+                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.content}
                     </ReactMarkdown>
@@ -256,7 +256,7 @@ function ChatContent() {
               <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0 mt-1">
                 <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
               </div>
-              <div className="chat-result text-sm flex-1 min-w-0 prose prose-invert prose-sm max-w-none">
+              <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {streamingText}
                 </ReactMarkdown>
