@@ -153,164 +153,118 @@ export default async function DashboardPage() {
               </Link>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
-              {/* 教えてマスター */}
-              <Link
-                href={`/study/teach?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border-2 border-amber-500/30 hover:border-amber-500/60 transition-colors group relative overflow-hidden"
-              >
-                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold">
-                  NEW
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
-                  <GraduationCap className="w-6 h-6 text-amber-500" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  教えてマスター
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-amber-500 transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  AIに教えて理解度を証明する
-                </p>
-              </Link>
-
-              {/* AI Tutor */}
-              <Link
-                href={`/study/chat?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-4">
-                  <MessageCircle className="w-6 h-6 text-[var(--color-accent)]" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  AIチューター
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  質問・解説・暗記法・学習計画
-                </p>
-              </Link>
-
-              {/* Practice */}
-              <Link
-                href={`/study/practice?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-4">
-                  <Target className="w-6 h-6 text-[var(--color-accent)]" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  練習問題
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  本番形式の問題を無限に生成
-                </p>
-              </Link>
-
-              {/* Review (Essay) */}
-              {targetExam.hasEssay && (
-                <Link
-                  href={`/study/review?mode=essay&exam=${targetExam.id}`}
-                  className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-4">
-                    <PenTool className="w-6 h-6 text-[var(--color-accent)]" />
+            {/* ── インプット ── */}
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">インプット — 知識を入れる</h3>
+              <div className="grid md:grid-cols-3 gap-3">
+                <Link href={`/study/chat?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                    <MessageCircle className="w-5 h-5 text-[var(--color-accent)]" />
                   </div>
-                  <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                    論述添削
-                    <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors" />
-                  </h3>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
-                    答案を即時採点・添削
-                  </p>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">AIチューター <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">質問・解説・暗記法</p>
+                  </div>
                 </Link>
-              )}
+                <Link href={`/study/flashcards?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                    <Layers className="w-5 h-5 text-[var(--color-accent)]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">暗記カード <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">間隔反復で定着</p>
+                  </div>
+                </Link>
+                <Link href={`/study/practice?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                    <Target className="w-5 h-5 text-[var(--color-accent)]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">練習問題 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">本番形式で無限生成</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
 
-              {/* Flashcards */}
-              <Link
-                href={`/study/flashcards?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-4">
-                  <Layers className="w-6 h-6 text-[var(--color-accent)]" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  暗記カード
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  AI生成 + 間隔反復で定着
-                </p>
-              </Link>
+            {/* ── 深い理解 ── */}
+            <div className="mb-8">
+              <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">深い理解 — 考えて身につける</h3>
+              <div className="grid md:grid-cols-3 gap-3">
+                <Link href={`/study/teach?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border-2 border-amber-500/20 hover:border-amber-500/50 transition-colors group flex items-center gap-4 relative">
+                  <div className="absolute top-2 right-3 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[9px] font-bold">NEW</div>
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                    <GraduationCap className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">教えてマスター <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-amber-600" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">AIに教えて理解を証明</p>
+                  </div>
+                </Link>
+                <Link href={`/study/socratic?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-violet-500/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                    <HelpCircle className="w-5 h-5 text-violet-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">ソクラテス式問答 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-violet-500" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">問いで思考を深化</p>
+                  </div>
+                </Link>
+                <Link href={`/study/case-study?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-emerald-500/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">ケーススタディ <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-emerald-500" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">事例で判断力を鍛える</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
 
-              {/* ソクラテス式問答 */}
-              <Link
-                href={`/study/socratic?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-violet-500/30 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-4">
-                  <HelpCircle className="w-6 h-6 text-violet-400" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  ソクラテス式問答
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-violet-400 transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  問いに答えて思考を深化
-                </p>
-              </Link>
-
-              {/* ケーススタディ */}
-              <Link
-                href={`/study/case-study?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-emerald-500/30 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-                  <FileText className="w-6 h-6 text-emerald-400" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  ケーススタディ
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-emerald-400 transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  事例で判断力を鍛える
-                </p>
-              </Link>
-
-              {/* 弱点ドリル */}
-              <Link
-                href={`/study/weakness?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-orange-500/30 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-4">
-                  <Zap className="w-6 h-6 text-orange-400" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  弱点ドリル
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-orange-400 transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  苦手を集中攻撃
-                </p>
-              </Link>
-
-              {/* Analytics */}
-              <Link
-                href={`/study/analytics?exam=${targetExam.id}`}
-                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-4">
-                  <BarChart3 className="w-6 h-6 text-[var(--color-accent)]" />
-                </div>
-                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                  学習分析
-                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors" />
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  弱点・正答率・進捗を可視化
-                </p>
-              </Link>
+            {/* ── 仕上げ ── */}
+            <div className="mb-4">
+              <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">仕上げ — 弱点を潰す</h3>
+              <div className="grid md:grid-cols-3 gap-3">
+                <Link href={`/study/weakness?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-orange-500/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">弱点ドリル <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-orange-500" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">苦手を集中攻撃</p>
+                  </div>
+                </Link>
+                {targetExam.hasEssay && (
+                  <Link href={`/study/review?mode=essay&exam=${targetExam.id}`}
+                    className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                      <PenTool className="w-5 h-5 text-[var(--color-accent)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-sm flex items-center gap-1">論述添削 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                      <p className="text-xs text-[var(--color-text-secondary)] truncate">答案を即時採点</p>
+                    </div>
+                  </Link>
+                )}
+                <Link href={`/study/analytics?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-5 h-5 text-[var(--color-accent)]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">学習分析 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">弱点・正答率を可視化</p>
+                  </div>
+                </Link>
+              </div>
             </div>
 
             {/* Streak */}
