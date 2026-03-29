@@ -21,6 +21,7 @@ import {
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { EXAM_ICON_MAP } from "@/components/ExamIcons";
 import { getPrediction, generateStudyPath, type PassPrediction, type StudyPath } from "@/lib/adaptive-engine";
+import ExamSwitcher from "@/components/ExamSwitcher";
 
 export const metadata: Metadata = {
   title: "ダッシュボード",
@@ -150,16 +151,8 @@ export default async function DashboardPage() {
         {/* Study Modes (shown when exam is selected) */}
         {targetExam && (
           <section className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black flex items-center gap-3">
-                {targetExam.name}
-              </h2>
-              <Link
-                href="/onboarding"
-                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
-              >
-                試験を変更
-              </Link>
+            <div className="mb-6">
+              <ExamSwitcher currentExamId={targetExam.id} currentExamName={targetExam.name} />
             </div>
 
             {/* ── インプット ── */}
