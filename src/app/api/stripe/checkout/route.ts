@@ -6,12 +6,8 @@ export async function GET(request: NextRequest) {
   const baseUrl = "https://studyengines.com";
 
   try {
-    if (!stripe) {
-      return NextResponse.json({ error: "Stripe未設定", debug: `key:${!!process.env.STRIPE_SECRET_KEY}` }, { status: 500 });
-    }
-
-    if (!process.env.NEXT_PUBLIC_STRIPE_PRICE_ID) {
-      return NextResponse.json({ error: "Price ID未設定" }, { status: 500 });
+    if (!stripe || !process.env.NEXT_PUBLIC_STRIPE_PRICE_ID) {
+      return NextResponse.redirect(`${baseUrl}/dashboard`);
     }
 
     const supabase = await createClient();
@@ -64,6 +60,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(session.url!);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: "Stripeエラー", debug: msg }, { status: 500 });
+    return NextResponse.redirect(`${baseUrl}/dashboard`);
   }
 }
