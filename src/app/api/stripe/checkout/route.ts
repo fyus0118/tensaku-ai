@@ -1,8 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const origin = request.headers.get("origin") || request.headers.get("host") || "https://studyengines.com";
+  const baseUrl = origin.startsWith("http") ? origin : `https://${origin}`;
+
+  if (!stripe) {
+    return NextResponse.redirect(`${baseUrl}/dashboard?error=stripe`);
+  }
+
   const supabase = await createClient();
 
   const {
@@ -10,7 +17,7 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL!));
+    return NextResponse.redirect(`${baseUrl}/login`);
   }
 
   const { data: profile } = await supabase
@@ -21,7 +28,6 @@ export async function GET() {
 
   let customerId = profile?.stripe_customer_id;
 
-  // Stripeカスタマーが未作成の場合
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: user.email,
@@ -44,8 +50,8 @@ export async function GET() {
         quantity: 1,
       },
     ],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    success_url: `${baseUrl}/dashboard?upgraded=true`,
+    cancel_url: `${baseUrl}/dashboard`,
     subscription_data: {
       metadata: { supabase_user_id: user.id },
     },
