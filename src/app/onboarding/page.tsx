@@ -39,7 +39,7 @@ const EXAM_GROUPS = [
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
-  const [selectedExam, setSelectedExam] = useState("");
+  const [selectedExams, setSelectedExams] = useState<string[]>([]);
   const [examDate, setExamDate] = useState("");
   const [dailyGoal, setDailyGoal] = useState(20);
   const [error, setError] = useState("");
@@ -52,6 +52,12 @@ export default function OnboardingPage() {
     }, 800);
     return () => clearInterval(interval);
   }, [step]);
+
+  const toggleExam = (id: string) => {
+    setSelectedExams(prev =>
+      prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
+    );
+  };
 
   const handleSave = async () => {
     setStep("saving");
@@ -69,7 +75,7 @@ export default function OnboardingPage() {
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
-        target_exam: selectedExam || null,
+        target_exam: selectedExams[0] || null,
         target_exam_date: examDate || null,
         daily_goal: dailyGoal,
         onboarding_completed: true,
@@ -136,7 +142,7 @@ export default function OnboardingPage() {
                 Study<span className="text-[var(--color-accent)]">Engines</span>へようこそ
               </h1>
               <p className="text-[var(--color-text-secondary)]">
-                目標の試験を選んでください
+                学習する試験を選んでください（複数選択可）
               </p>
             </div>
 
@@ -150,26 +156,29 @@ export default function OnboardingPage() {
                     {exams.map((exam) => {
                       if (!exam) return null;
                       const IC = EXAM_ICON_MAP[exam.id];
-                      const isSelected = selectedExam === exam.id;
+                      const isSelected = selectedExams.includes(exam.id);
+                      const selectIndex = selectedExams.indexOf(exam.id);
                       return (
                         <button
                           key={exam.id}
-                          onClick={() => setSelectedExam(isSelected ? "" : exam.id)}
-                          className={`p-4 rounded-xl border text-left transition-all ${
+                          onClick={() => toggleExam(exam.id)}
+                          className={`p-4 rounded-xl border text-left transition-all relative ${
                             isSelected
                               ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
                               : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
                           }`}
                         >
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--color-accent)] text-white text-[10px] font-bold flex items-center justify-center">
+                              {selectIndex + 1}
+                            </div>
+                          )}
                           {IC && <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" />}
                           <p className="text-sm font-bold leading-tight">{exam.name}</p>
                           <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                             {exam.subjects.length}科目
                             {exam.examMonth ? ` / ${exam.examMonth}月試験` : ""}
                           </p>
-                          {isSelected && (
-                            <CheckCircle className="w-4 h-4 text-[var(--color-accent)] mt-2" />
-                          )}
                         </button>
                       );
                     })}
@@ -177,7 +186,7 @@ export default function OnboardingPage() {
 
                   {/* 選択中の資格の概要を展開表示 */}
                   {exams.map((exam) => {
-                    if (!exam || selectedExam !== exam.id) return null;
+                    if (!exam || !selectedExams.includes(exam.id)) return null;
                     return (
                       <div key={`detail-${exam.id}`} className="mt-3 p-5 rounded-xl bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/20 animate-fade-in">
                         <p className="text-sm font-bold mb-1">{exam.name}</p>
@@ -208,7 +217,7 @@ export default function OnboardingPage() {
             <div className="max-w-2xl mx-auto flex items-center gap-3">
               <button
                 onClick={() => {
-                  setSelectedExam("");
+                  setSelectedExams([]);
                   handleSave();
                 }}
                 className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] shrink-0"
@@ -217,10 +226,10 @@ export default function OnboardingPage() {
               </button>
               <button
                 onClick={() => setStep(2)}
-                disabled={!selectedExam}
+                disabled={selectedExams.length === 0}
                 className="flex-1 py-3.5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                次へ
+                {selectedExams.length > 0 ? `${selectedExams.length}件選択中 — 次へ` : "試験を選択してください"}
                 <ArrowRight className="w-5 h-5" />
               </button>
             </div>
