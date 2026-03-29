@@ -127,7 +127,7 @@ export default function OnboardingPage() {
 
         {/* Step 1: 試験選択 */}
         {step === 1 && (
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in pb-24">
             <div className="text-center">
               <div className="w-16 h-16 rounded-2xl bg-[var(--color-accent)]/10 flex items-center justify-center mx-auto mb-6">
                 <GraduationCap className="w-8 h-8 text-[var(--color-accent)]" />
@@ -199,24 +199,31 @@ export default function OnboardingPage() {
               );
             })}
 
-            <button
-              onClick={() => setStep(2)}
-              disabled={!selectedExam}
-              className="w-full py-4 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold text-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              次へ
-              <ArrowRight className="w-5 h-5" />
-            </button>
+          </div>
+        )}
 
-            <button
-              onClick={() => {
-                setSelectedExam("");
-                handleSave();
-              }}
-              className="w-full text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
-            >
-              スキップしてダッシュボードへ
-            </button>
+        {/* Step 1: 固定フッター */}
+        {step === 1 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-[var(--color-bg)]/95 backdrop-blur-sm border-t border-[var(--color-border)] px-6 py-4 z-50">
+            <div className="max-w-2xl mx-auto flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setSelectedExam("");
+                  handleSave();
+                }}
+                className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] shrink-0"
+              >
+                スキップ
+              </button>
+              <button
+                onClick={() => setStep(2)}
+                disabled={!selectedExam}
+                className="flex-1 py-3.5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                次へ
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
 
