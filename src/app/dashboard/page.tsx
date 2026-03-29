@@ -14,6 +14,9 @@ import {
   Flame,
   Settings,
   GraduationCap,
+  HelpCircle,
+  FileText,
+  Zap,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { EXAM_ICON_MAP } from "@/components/ExamIcons";
@@ -238,6 +241,57 @@ export default async function DashboardPage() {
                 </h3>
                 <p className="text-sm text-[var(--color-text-secondary)]">
                   AI生成 + 間隔反復で定着
+                </p>
+              </Link>
+
+              {/* ソクラテス式問答 */}
+              <Link
+                href={`/study/socratic?exam=${targetExam.id}`}
+                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-violet-500/30 transition-colors group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-4">
+                  <HelpCircle className="w-6 h-6 text-violet-400" />
+                </div>
+                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                  ソクラテス式問答
+                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-violet-400 transition-colors" />
+                </h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  問いに答えて思考を深化
+                </p>
+              </Link>
+
+              {/* ケーススタディ */}
+              <Link
+                href={`/study/case-study?exam=${targetExam.id}`}
+                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-emerald-500/30 transition-colors group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
+                  <FileText className="w-6 h-6 text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                  ケーススタディ
+                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-emerald-400 transition-colors" />
+                </h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  事例で判断力を鍛える
+                </p>
+              </Link>
+
+              {/* 弱点ドリル */}
+              <Link
+                href={`/study/weakness?exam=${targetExam.id}`}
+                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-orange-500/30 transition-colors group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-orange-400" />
+                </div>
+                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                  弱点ドリル
+                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-orange-400 transition-colors" />
+                </h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  苦手を集中攻撃
                 </p>
               </Link>
 
