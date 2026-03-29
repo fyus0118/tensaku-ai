@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   try {
@@ -19,25 +20,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Supabaseのrecoverエンドポイントでメール送信
-    const mailRes = await fetch(`${supabaseUrl}/auth/v1/recover`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({
-        email,
-        redirect_to: `${appUrl}/auth/callback`,
-      }),
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${appUrl}/auth/callback`,
     });
 
-    const mailBody = await mailRes.text();
-
-    if (!mailRes.ok) {
+    if (error) {
       return NextResponse.json(
-        { error: "メール送信に失敗しました", debug: mailBody },
+        { error: "メール送信に失敗しました", debug: error.message },
         { status: 500 }
       );
     }
