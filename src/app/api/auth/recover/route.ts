@@ -7,9 +7,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "メールアドレスを入力してください" }, { status: 400 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com";
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("[recover] Missing env vars:", { supabaseUrl: !!supabaseUrl, serviceRoleKey: !!serviceRoleKey });
+    return NextResponse.json({ error: "サーバー設定エラー", debug: "missing env vars" }, { status: 500 });
+  }
 
   // Admin APIでリカバリーリンク生成（レート制限なし）
   const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {

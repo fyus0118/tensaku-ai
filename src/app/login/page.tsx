@@ -43,8 +43,10 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json();
-      console.log("[reset] API response:", data);
+      const text = await res.text();
+      console.log("[reset] API response:", res.status, text);
+      let data;
+      try { data = JSON.parse(text); } catch { data = { error: `サーバーエラー (${res.status})` }; }
       if (data.error) {
         setError(data.error + (data.debug ? ` (${data.debug})` : ""));
       } else if (data.fallback && data.action_link) {
