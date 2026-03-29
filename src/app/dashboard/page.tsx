@@ -13,6 +13,7 @@ import {
   BarChart3,
   Flame,
   Settings,
+  GraduationCap,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { EXAM_ICON_MAP } from "@/components/ExamIcons";
@@ -150,6 +151,26 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
+              {/* 教えてマスター */}
+              <Link
+                href={`/study/teach?exam=${targetExam.id}&subject=${encodeURIComponent(targetExam.subjects[0]?.name || "")}`}
+                className="p-6 rounded-2xl bg-[var(--color-bg-card)] border-2 border-amber-500/30 hover:border-amber-500/60 transition-colors group relative overflow-hidden"
+              >
+                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold">
+                  NEW
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
+                  <GraduationCap className="w-6 h-6 text-amber-500" />
+                </div>
+                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                  教えてマスター
+                  <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-amber-500 transition-colors" />
+                </h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  AIに教えて理解度を証明する
+                </p>
+              </Link>
+
               {/* AI Tutor */}
               <Link
                 href={`/study/chat?exam=${targetExam.id}`}

@@ -39,6 +39,23 @@ export const practicePutSchema = z.object({
   difficulty: z.number().int().min(1).max(5).optional(),
 });
 
+// ── Teach ────────────────────────────────────
+export const teachPostSchema = z.object({
+  examId: z.string().min(1).max(100),
+  subject: z.string().min(1).max(200),
+  topic: z.string().max(200).optional(),
+  message: z.string().min(1).max(10000),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(50000),
+      })
+    )
+    .max(50)
+    .optional(),
+});
+
 // ── Review ────────────────────────────────────
 export const reviewPostSchema = z.object({
   reviewType: z.enum(["essay", "report"]),
