@@ -33,6 +33,25 @@ export async function GET(request: NextRequest) {
     .update(update)
     .eq("id", user.id);
 
+  // 学習開始を記録（exam-statusで検知するため）
+  // 既にこの試験のメッセージがあればスキップ
+  const { data: existing } = await supabase
+    .from("chat_messages")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("exam_id", examId)
+    .limit(1);
+
+  if (!existing || existing.length === 0) {
+    await supabase.from("chat_messages").insert({
+      user_id: user.id,
+      exam_id: examId,
+      subject: "_system",
+      role: "assistant",
+      content: "学習を開始しました",
+    });
+  }
+
   return isAjax
     ? NextResponse.json({ ok: true })
     : NextResponse.redirect(`${origin}/dashboard`);
