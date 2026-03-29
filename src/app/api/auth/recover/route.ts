@@ -45,7 +45,10 @@ export async function POST(request: Request) {
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
     },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({
+      email,
+      redirect_to: `${appUrl}/auth/callback`,
+    }),
   });
 
   if (!mailRes.ok) {
