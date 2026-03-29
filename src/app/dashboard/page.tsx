@@ -440,13 +440,11 @@ export default async function DashboardPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {exams.map((exam) => {
                     if (!exam) return null;
-                    const IC = EXAM_ICONS[exam.id] || Target;
                     return (
                       <ExamCard
                         key={exam.id}
                         exam={exam}
                         isCurrent={targetExam?.id === exam.id}
-                        Icon={IC}
                       />
                     );
                   })}

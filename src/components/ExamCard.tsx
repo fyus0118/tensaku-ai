@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, X, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ExamCategory } from "@/lib/exams";
+import { EXAM_ICON_MAP } from "@/components/ExamIcons";
 
-export default function ExamCard({ exam, isCurrent, Icon }: { exam: ExamCategory; isCurrent: boolean; Icon: React.ComponentType<{ className?: string }> }) {
+export default function ExamCard({ exam, isCurrent }: { exam: ExamCategory; isCurrent: boolean }) {
   const [showDetail, setShowDetail] = useState(false);
   const [switching, setSwitching] = useState(false);
   const router = useRouter();
+  const Icon = EXAM_ICON_MAP[exam.id] || Target;
 
   const handleConfirm = async () => {
     if (isCurrent) return;
@@ -39,7 +41,6 @@ export default function ExamCard({ exam, isCurrent, Icon }: { exam: ExamCategory
         </p>
       </button>
 
-      {/* 概要モーダル */}
       {showDetail && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6" onClick={() => setShowDetail(false)}>
           <div className="w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-2xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
