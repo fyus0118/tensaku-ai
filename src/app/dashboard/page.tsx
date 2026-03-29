@@ -22,6 +22,7 @@ import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { EXAM_ICON_MAP } from "@/components/ExamIcons";
 import { getPrediction, generateStudyPath, type PassPrediction, type StudyPath } from "@/lib/adaptive-engine";
 import ExamSwitcher from "@/components/ExamSwitcher";
+import ExamCard from "@/components/ExamCard";
 
 export const metadata: Metadata = {
   title: "ダッシュボード",
@@ -244,18 +245,16 @@ export default async function DashboardPage() {
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">苦手を集中攻撃</p>
                   </div>
                 </Link>
-                {targetExam.hasEssay && (
-                  <Link href={`/study/review?mode=essay&exam=${targetExam.id}`}
-                    className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
-                      <PenTool className="w-5 h-5 text-[var(--color-accent)]" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-sm flex items-center gap-1">論述添削 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
-                      <p className="text-xs text-[var(--color-text-secondary)] truncate">答案を即時採点</p>
-                    </div>
-                  </Link>
-                )}
+                <Link href={`/study/review?mode=essay&exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                    <PenTool className="w-5 h-5 text-[var(--color-accent)]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">論述添削 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">答案を即時採点</p>
+                  </div>
+                </Link>
                 <Link href={`/study/analytics?exam=${targetExam.id}`}
                   className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
@@ -441,27 +440,14 @@ export default async function DashboardPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {exams.map((exam) => {
                     if (!exam) return null;
-                    const href = `/api/select-exam?exam=${exam.id}`;
                     const IC = EXAM_ICONS[exam.id] || Target;
                     return (
-                      <Link
+                      <ExamCard
                         key={exam.id}
-                        href={href}
-                        className={`p-4 rounded-xl border transition-colors hover:border-[var(--color-accent)]/30 ${
-                          targetExam?.id === exam.id
-                            ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
-                            : "border-[var(--color-border)] bg-[var(--color-bg-card)]"
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-2">
-                          <IC className="w-4 h-4 text-[var(--color-accent)]" />
-                        </div>
-                        <p className="text-sm font-bold leading-tight">{exam.name}</p>
-                        <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                          {exam.subjects.length}科目
-                          {exam.examMonth ? ` / ${exam.examMonth}月` : ""}
-                        </p>
-                      </Link>
+                        exam={exam}
+                        isCurrent={targetExam?.id === exam.id}
+                        Icon={IC}
+                      />
                     );
                   })}
                 </div>
