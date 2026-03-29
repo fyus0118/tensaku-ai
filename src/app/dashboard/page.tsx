@@ -103,13 +103,13 @@ export default async function DashboardPage() {
                 PRO
               </span>
             ) : (
-              <Link
+              <a
                 href="/api/stripe/checkout"
                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white text-xs font-bold hover:bg-[var(--color-accent-hover)] transition-colors"
               >
                 <Crown className="w-3 h-3" />
                 プロにアップグレード
-              </Link>
+              </a>
             )}
             <Link
               href="/settings"
@@ -140,12 +140,12 @@ export default async function DashboardPage() {
               </span>
               回
             </p>
-            <Link
+            <a
               href="/api/stripe/checkout"
               className="text-sm text-[var(--color-accent)] font-medium hover:underline"
             >
               無制限にする →
-            </Link>
+            </a>
           </div>
         )}
 
@@ -466,12 +466,12 @@ export default async function DashboardPage() {
                 </p>
               </div>
               {isPro && (
-                <Link
+                <a
                   href="/api/stripe/portal"
                   className="text-sm text-[var(--color-accent)] hover:underline"
                 >
                   サブスクリプション管理
-                </Link>
+                </a>
               )}
             </div>
             <div className="border-t border-[var(--color-border)] pt-4">
