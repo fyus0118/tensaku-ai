@@ -153,7 +153,7 @@ export default async function DashboardPage() {
             <div className="grid md:grid-cols-3 gap-4">
               {/* 教えてマスター */}
               <Link
-                href={`/study/teach?exam=${targetExam.id}&subject=${encodeURIComponent(targetExam.subjects[0]?.name || "")}`}
+                href={`/study/teach?exam=${targetExam.id}`}
                 className="p-6 rounded-2xl bg-[var(--color-bg-card)] border-2 border-amber-500/30 hover:border-amber-500/60 transition-colors group relative overflow-hidden"
               >
                 <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold">

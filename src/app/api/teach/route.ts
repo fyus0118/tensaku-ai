@@ -150,6 +150,18 @@ export async function POST(request: Request) {
             .eq("id", user.id);
         }
 
+        // 診断カウントをフロントに送信
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({
+            diagnostics: {
+              caught: caught.length,
+              missed: missed.length,
+              errors: errors.length,
+              correct: correct.length,
+            },
+          })}\n\n`)
+        );
+
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
         );
