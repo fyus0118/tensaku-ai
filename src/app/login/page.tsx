@@ -43,12 +43,9 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const text = await res.text();
-      console.log("[reset] API response:", res.status, text);
-      let data;
-      try { data = JSON.parse(text); } catch { data = { error: `サーバーエラー (${res.status})` }; }
+      const data = await res.json().catch(() => ({ error: "サーバーエラー" }));
       if (data.error) {
-        setError(data.error + (data.debug ? ` (${data.debug})` : ""));
+        setError(data.error);
       } else if (data.fallback && data.action_link) {
         // レート制限時はリンクに直接遷移
         window.location.href = data.action_link;

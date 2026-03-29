@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
-        { error: "サーバー設定エラー", debug: `url:${!!supabaseUrl} key:${!!serviceRoleKey}` },
+        { error: "サーバー設定エラー" },
         { status: 500 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json(
-        { error: "メール送信に失敗しました", debug: error.message },
+        { error: "メール送信に失敗しました" },
         { status: 500 }
       );
     }
@@ -36,6 +36,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: "予期しないエラー", debug: msg }, { status: 500 });
+    return NextResponse.json({ error: "予期しないエラー" }, { status: 500 });
   }
 }
