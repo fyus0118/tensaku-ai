@@ -151,8 +151,7 @@ export default async function DashboardPage() {
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-black flex items-center gap-3">
-                <span className="text-3xl">{targetExam.icon}</span>
-                {targetExam.shortName}
+                {targetExam.name}
               </h2>
               <Link
                 href="/onboarding"
@@ -447,10 +446,7 @@ export default async function DashboardPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {exams.map((exam) => {
                     if (!exam) return null;
-                    const isUniversity = exam.id === "daigaku-nyushi" || exam.id === "daigaku-report";
-                    const href = isUniversity
-                      ? exam.id === "daigaku-nyushi" ? "/study/review?mode=essay" : "/study/review?mode=report"
-                      : `/study/chat?exam=${exam.id}`;
+                    const href = `/api/select-exam?exam=${exam.id}`;
                     const IC = EXAM_ICONS[exam.id] || Target;
                     return (
                       <Link
