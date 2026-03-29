@@ -22,22 +22,25 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       email,
       type: "recovery",
-      redirect_to: `${appUrl}/auth/reset-password`,
+      redirect_to: `${appUrl}/auth/callback`,
     }),
   });
 
+  const linkBody = await linkRes.text();
+  console.log("[recover] generate_link status:", linkRes.status, "body:", linkBody);
+
   if (!linkRes.ok) {
-    return NextResponse.json({ error: "エラーが発生しました" }, { status: 500 });
+    return NextResponse.json({ error: "エラーが発生しました", debug: linkBody }, { status: 500 });
   }
 
-  const linkData = await linkRes.json();
+  const linkData = JSON.parse(linkBody);
   const actionLink = linkData.action_link;
 
   if (!actionLink) {
-    return NextResponse.json({ error: "エラーが発生しました" }, { status: 500 });
+    return NextResponse.json({ error: "エラーが発生しました", debug: "no action_link" }, { status: 500 });
   }
 
-  // Supabaseのrecoverエンドポイントでメール送信を試みる
+  // Supabaseのrecoverエンドポイントでメール送信
   const mailRes = await fetch(`${supabaseUrl}/auth/v1/recover`, {
     method: "POST",
     headers: {
@@ -51,9 +54,12 @@ export async function POST(request: Request) {
     }),
   });
 
+  const mailBody = await mailRes.text();
+  console.log("[recover] recover status:", mailRes.status, "body:", mailBody);
+
   if (!mailRes.ok) {
     // メール送信がレート制限された場合、リンクに直接遷移
-    return NextResponse.json({ action_link: actionLink, fallback: true });
+    return NextResponse.json({ action_link: actionLink, fallback: true, debug: mailBody });
   }
 
   return NextResponse.json({ success: true });
