@@ -114,9 +114,10 @@ export async function POST(request: Request) {
         const missed = [...fullResult.matchAll(/<!--MISSED:(.*?)-->/g)].map(m => m[1]);
         const errors = [...fullResult.matchAll(/<!--ERROR:(.*?)-->/g)].map(m => m[1]);
         const correct = [...fullResult.matchAll(/<!--CORRECT:(.*?)-->/g)].map(m => m[1]);
+        const verified = [...fullResult.matchAll(/<!--VERIFIED:(.*?)-->/g)].map(m => m[1]);
 
         // 表示用テキスト（タグ除去）
-        const cleanResult = fullResult.replace(/<!--(CAUGHT|MISSED|ERROR|CORRECT):.*?-->/g, "").trim();
+        const cleanResult = fullResult.replace(/<!--(CAUGHT|MISSED|ERROR|CORRECT|VERIFIED):.*?-->/g, "").trim();
 
         // DBに保存
         await supabase.from("chat_messages").insert([
@@ -124,7 +125,31 @@ export async function POST(request: Request) {
           { user_id: user.id, exam_id: examId, subject, role: "assistant", content: cleanResult },
         ]);
 
-        // 診断データがあればteach_sessionsに記録
+        // Core蓄積: CORRECT + VERIFIEDのみ（検証済み知識）
+        const coreEntries = [
+          ...correct.map(c => ({ type: "correct" as const, content: c })),
+          ...verified.map(v => ({ type: "verified" as const, content: v })),
+        ];
+
+        if (coreEntries.length > 0) {
+          try {
+            await supabase.from("core_knowledge").insert(
+              coreEntries.map(entry => ({
+                user_id: user.id,
+                exam_id: examId,
+                subject,
+                topic: topic || null,
+                content: entry.content,
+                source: entry.type,
+                understanding_depth: entry.type === "verified" ? 5 : 3,
+              }))
+            );
+          } catch {
+            // テーブル未作成でも動作を止めない
+          }
+        }
+
+        // 診断データを記録
         if (caught.length > 0 || missed.length > 0 || errors.length > 0) {
           try {
             await supabase.from("teach_diagnostics").insert({
@@ -136,6 +161,7 @@ export async function POST(request: Request) {
               missed,
               errors,
               correct,
+              verified,
             });
           } catch {
             // テーブル未作成でも動作を止めない

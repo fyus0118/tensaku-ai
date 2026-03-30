@@ -17,6 +17,7 @@ import {
   HelpCircle,
   FileText,
   Zap,
+  Brain,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { EXAM_ICON_MAP } from "@/components/ExamIcons";
@@ -263,6 +264,16 @@ export default async function DashboardPage() {
                   <div className="min-w-0">
                     <h4 className="font-bold text-sm flex items-center gap-1">学習分析 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">弱点・正答率を可視化</p>
+                  </div>
+                </Link>
+                <Link href={`/study/core?exam=${targetExam.id}`}
+                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border-2 border-[var(--color-accent)]/20 hover:border-[var(--color-accent)]/50 transition-colors group flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                    <Brain className="w-5 h-5 text-[var(--color-accent)]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm flex items-center gap-1">あなたのCore <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <p className="text-xs text-[var(--color-text-secondary)] truncate">知識の分身を見る・質問する</p>
                   </div>
                 </Link>
               </div>
