@@ -1,33 +1,29 @@
 /**
- * 教材をSupabaseのdocumentsテーブルにRAG投入するスクリプト
+ * 教材をSupabaseのdocumentsテーブルにRAG投入
  *
- * 使い方:
- *   bun run scripts/ingest-materials.ts
- *
- * 前提:
- *   - scripts/generate-materials.ts で教材JSONが生成済み
- *   - .env.local にSupabase環境変数が設定済み
- *   - VOYAGE_API_KEY があればembedding付きで保存（なければテキストのみ）
+ * 使い方: bun run scripts/ingest-materials.ts
+ * 前提: scripts/generate-materials-v2.ts で教材JSONが生成済み
  */
 
 import { createClient } from "@supabase/supabase-js";
 import { readdirSync, readFileSync } from "fs";
+import * as dotenv from "dotenv";
 
-const MATERIALS_DIR = "./scripts/materials";
+dotenv.config({ path: ".env.local" });
+
+const MATERIALS_DIR = "./scripts/materials-v2";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
-
 interface MaterialEntry {
   examId: string;
-  examName: string;
   subject: string;
   topic: string;
   content: string;
+  sourceType: string;
   generatedAt: string;
 }
 
@@ -49,32 +45,6 @@ function chunkText(text: string, maxSize: number = 800): string[] {
   return chunks;
 }
 
-// Voyage APIでembeddingを生成
-async function embedTexts(texts: string[]): Promise<number[][] | null> {
-  if (!VOYAGE_API_KEY) return null;
-
-  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${VOYAGE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      input: texts,
-      model: "voyage-3-lite",
-      input_type: "document",
-    }),
-  });
-
-  if (!response.ok) {
-    console.error("Voyage API error:", await response.text());
-    return null;
-  }
-
-  const data = await response.json();
-  return data.data.map((d: { embedding: number[] }) => d.embedding);
-}
-
 async function main() {
   const files = readdirSync(MATERIALS_DIR).filter(f => f.endsWith(".json") && !f.startsWith("_"));
 
@@ -82,8 +52,7 @@ async function main() {
   let totalSkipped = 0;
   let totalErrors = 0;
 
-  console.log(`\n📥 RAG投入開始: ${files.length}ファイル`);
-  console.log(`   Voyage API: ${VOYAGE_API_KEY ? "✅ embedding有効" : "⚠️ なし（テキストのみ）"}\n`);
+  console.log(`\n📥 RAG投入開始: ${files.length}ファイル\n`);
 
   for (const file of files) {
     const materials: MaterialEntry[] = JSON.parse(
@@ -110,25 +79,14 @@ async function main() {
       // チャンク分割
       const chunks = chunkText(mat.content);
 
-      // embedding生成（Voyage APIがあれば）
-      let embeddings: number[][] | null = null;
-      if (VOYAGE_API_KEY) {
-        try {
-          embeddings = await embedTexts(chunks);
-        } catch (err) {
-          console.error(`    ❌ Embedding error for ${mat.topic}:`, err);
-        }
-      }
-
-      // Supabaseに挿入
+      // Supabaseに挿入（embeddingはnull、後から追加可能）
       const rows = chunks.map((chunk, idx) => ({
         exam_id: mat.examId,
         subject: mat.subject,
         topic: mat.topic,
         content: chunk,
-        embedding: embeddings ? JSON.stringify(embeddings[idx]) : null,
         metadata: {
-          examName: mat.examName,
+          sourceType: mat.sourceType,
           chunkIndex: idx,
           totalChunks: chunks.length,
           generatedAt: mat.generatedAt,
@@ -137,14 +95,13 @@ async function main() {
 
       const { error } = await supabase.from("documents").insert(rows);
       if (error) {
-        console.error(`    ❌ Insert error for ${mat.topic}:`, error.message);
+        console.error(`    ❌ ${mat.subject} > ${mat.topic}: ${error.message}`);
         totalErrors++;
       } else {
         totalInserted += chunks.length;
       }
 
-      // レート制限対策
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 100));
     }
   }
 
