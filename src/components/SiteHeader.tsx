@@ -23,7 +23,7 @@ export function SiteHeader() {
     >
       <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
         <Link href="/" className="text-xl font-black">
-          TENS<span className="text-[var(--color-accent)]">AKU</span>
+          Study<span className="text-[var(--color-accent)]">Engines</span>
         </Link>
         <nav className="hidden sm:flex items-center gap-6 text-sm text-[var(--color-text-secondary)]">
           <a href="#features" className="hover:text-[var(--color-text)] transition-colors">機能</a>

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ChevronDown } from "lucide-react";
 import {
-  Zap,
   ArrowRight,
   MessageCircle,
   Target,
@@ -10,70 +9,103 @@ import {
   Brain,
   Clock,
   CheckCircle,
-  Shield,
   BarChart3,
+  Sparkles,
+  BookOpen,
+  GraduationCap,
+  Lightbulb,
+  Eye,
+  TrendingUp,
+  Layers,
+  Network,
+  FlaskConical,
+  Swords,
+  HelpCircle,
 } from "lucide-react";
 import { EXAM_CATEGORIES } from "@/lib/exams";
-import { EXAM_ICON_MAP } from "@/components/ExamIcons";
 
-function FeatureCard({
-  icon: Icon,
-  title,
-  description,
-  glowClass,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  glowClass?: string;
-}) {
+/* ─────────────── 共通コンポーネント ─────────────── */
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="card-shine p-6 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-[var(--color-border-hover)] transition-all duration-300 hover:-translate-y-1">
-      <div className={`icon-glow ${glowClass || ""} w-12 h-12 rounded-xl flex items-center justify-center mb-4`}>
-        <Icon className="w-6 h-6 text-[var(--color-accent)] relative z-10" />
-      </div>
-      <h3 className="text-lg font-bold mb-2">{title}</h3>
-      <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
-        {description}
-      </p>
+    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--color-accent)]/8 border border-[var(--color-accent)]/15 text-[var(--color-accent)] text-xs font-bold tracking-wider uppercase mb-6">
+      {children}
     </div>
   );
 }
 
-function ModeCard({
+function LayerCard({
+  number,
+  name,
+  nameEn,
+  tagline,
+  description,
+  details,
+  color,
+  borderColor,
+}: {
+  number: string;
+  name: string;
+  nameEn: string;
+  tagline: string;
+  description: string;
+  details: string[];
+  color: string;
+  borderColor: string;
+}) {
+  return (
+    <div className={`relative p-8 rounded-2xl bg-[var(--color-bg-card)] border-2 ${borderColor} transition-all duration-300 hover:-translate-y-1 group overflow-hidden`}>
+      <div className={`absolute top-0 left-0 right-0 h-1 ${color}`} />
+      <div className="flex items-center gap-3 mb-4">
+        <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${color} text-white`}>
+          LAYER {number}
+        </span>
+        <span className="text-xs text-[var(--color-text-muted)] font-medium">{nameEn}</span>
+      </div>
+      <h3 className="text-2xl font-black mb-2">{name}</h3>
+      <p className="text-[var(--color-accent)] font-bold text-sm mb-3">{tagline}</p>
+      <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed mb-5">
+        {description}
+      </p>
+      <ul className="space-y-2">
+        {details.map((d) => (
+          <li key={d} className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)]">
+            <CheckCircle className="w-4 h-4 text-[var(--color-success)] mt-0.5 shrink-0" />
+            {d}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ModeItem({
   icon: Icon,
   title,
   description,
-  features,
-  gradient,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
-  features: string[];
-  gradient: string;
 }) {
   return (
-    <div className="card-shine p-8 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 group">
-      <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 relative overflow-hidden`}>
-        <div className={`absolute inset-0 ${gradient} opacity-20 group-hover:opacity-30 transition-opacity`} />
-        <Icon className="w-7 h-7 text-[var(--color-accent)] relative z-10" />
+    <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-[var(--color-bg-secondary)] transition-colors">
+      <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5 text-[var(--color-accent)]" />
       </div>
-      <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed mb-4">
-        {description}
-      </p>
-      <ul className="space-y-2">
-        {features.map((item) => (
-          <li
-            key={item}
-            className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)]"
-          >
-            <CheckCircle className="w-4 h-4 text-[var(--color-success)] mt-0.5 shrink-0" />
-            {item}
-          </li>
-        ))}
-      </ul>
+      <div>
+        <h4 className="text-sm font-bold mb-1">{title}</h4>
+        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="text-3xl sm:text-4xl font-black text-[var(--color-accent)]">{value}</div>
+      <div className="text-xs text-[var(--color-text-muted)] mt-1">{label}</div>
     </div>
   );
 }
@@ -92,52 +124,48 @@ function ComparisonRow({
   return (
     <tr className="border-b border-[var(--color-border)]">
       <td className="py-4 px-4 text-sm font-medium">{feature}</td>
-      <td className="py-4 px-4 text-sm text-[var(--color-text-secondary)] text-center">
-        {yobiko}
-      </td>
-      <td className="py-4 px-4 text-sm text-[var(--color-text-secondary)] text-center">
-        {chatgpt}
-      </td>
-      <td className="py-4 px-4 text-sm text-[var(--color-accent)] font-bold text-center">
-        {studyengines}
-      </td>
+      <td className="py-4 px-4 text-sm text-[var(--color-text-secondary)] text-center">{yobiko}</td>
+      <td className="py-4 px-4 text-sm text-[var(--color-text-secondary)] text-center">{chatgpt}</td>
+      <td className="py-4 px-4 text-sm text-[var(--color-accent)] font-bold text-center">{studyengines}</td>
     </tr>
   );
 }
 
-// 試験アイコンはExamIconsから取得、フォールバック用
-const EXAM_ICONS = EXAM_ICON_MAP;
+/* ─────────────── メイン ─────────────── */
 
 export default function Home() {
-  const nationalExams = EXAM_CATEGORIES.filter((e) => e.isNational);
+  const examCount = EXAM_CATEGORIES.length;
 
   return (
     <main className="min-h-screen">
       <SiteHeader />
-      {/* Hero */}
+
+      {/* ━━━ Hero ━━━ */}
       <section className="relative overflow-hidden mesh-hero">
         <div className="absolute inset-0 grid-pattern" />
-        <div className="relative max-w-5xl mx-auto px-6 pt-24 pb-20">
+        <div className="relative max-w-5xl mx-auto px-6 pt-28 pb-24">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 text-[var(--color-accent)] text-sm font-medium mb-8 animate-fade-in">
-              <Zap className="w-4 h-4" />
-              無料で3回試せる
+              <Sparkles className="w-4 h-4" />
+              3層AIで、勉強した時間がゼロにならない
             </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-tight mb-6 animate-fade-in">
-              Study<span className="text-[var(--color-accent)]">Engines</span>
-            </h1>
-            <p className="text-xl sm:text-2xl text-[var(--color-text-secondary)] mb-4 max-w-2xl mx-auto leading-relaxed animate-fade-in">
-              国家試験・資格試験の
-              <br className="sm:hidden" />
-              <span className="text-[var(--color-text)] font-bold">
-                AI学習パートナー
-              </span>
-            </p>
-            <p className="text-[var(--color-text-muted)] mb-10 max-w-xl mx-auto animate-fade-in">
-              AIチューター、練習問題生成、論述添削。
+
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-6 animate-fade-in">
+              学びながら、
               <br />
-              あなた専用の講師が、24時間いつでも対応します。
+              <span className="text-[var(--color-accent)]">自分専用AI</span>を育てる。
+            </h1>
+
+            <p className="text-lg sm:text-xl text-[var(--color-text-secondary)] mb-5 max-w-2xl mx-auto leading-relaxed animate-fade-in">
+              AIが教え、AIが検証し、あなたの知識だけで構築されるAIが育つ。
+              <br className="hidden sm:block" />
+              合格した後も、知識が<span className="font-bold text-[var(--color-text)]">資産</span>として残り続ける。
             </p>
+
+            <p className="text-sm text-[var(--color-text-muted)] mb-10 animate-fade-in">
+              {examCount}試験対応 / 9つの学習モード / 無料で試せる
+            </p>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
               <Link
                 href="/login"
@@ -147,140 +175,300 @@ export default function Home() {
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <a
-                href="#features"
+                href="#three-layers"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] font-medium transition-all duration-300"
               >
-                詳しく見る
+                3層AIとは？
               </a>
-            </div>
-
-            {/* Hero visual — abstract geometric */}
-            <div className="mt-16 flex justify-center gap-4 animate-fade-in">
-              {[MessageCircle, Target, PenTool].map((Icon, i) => (
-                <div
-                  key={i}
-                  className="animate-float w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)] flex items-center justify-center"
-                  style={{ animationDelay: `${i * 0.5}s` }}
-                >
-                  <Icon className="w-7 h-7 text-[var(--color-accent)]" />
-                </div>
-              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3 Modes */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-black text-center mb-4">
-          3つの学習モード
+      {/* ━━━ 数字で見る ━━━ */}
+      <section className="border-y border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+        <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-2 sm:grid-cols-4 gap-8">
+          <StatCard value={`${examCount}`} label="対応試験" />
+          <StatCard value="9" label="学習モード" />
+          <StatCard value="3層" label="AI構造" />
+          <StatCard value="24h" label="いつでも対応" />
+        </div>
+      </section>
+
+      {/* ━━━ 問題提起 ━━━ */}
+      <section className="max-w-4xl mx-auto px-6 py-24 text-center">
+        <SectionLabel>問題</SectionLabel>
+        <h2 className="text-3xl sm:text-4xl font-black mb-6 leading-tight">
+          勉強した時間、<br className="sm:hidden" />本当に身についていますか？
         </h2>
-        <p className="text-[var(--color-text-secondary)] text-center mb-14 max-w-xl mx-auto">
-          予備校の講義・問題集・添削を、AIが1つのツールに凝縮。
-        </p>
+        <div className="grid sm:grid-cols-3 gap-6 mt-12 text-left">
+          <div className="p-6 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
+            <div className="text-2xl mb-3">😰</div>
+            <h3 className="font-bold mb-2 text-sm">有能感の錯覚</h3>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              テキストを読んで「わかった気」になる。練習問題で正解しても、説明を求められると答えられない。学習者は自分のスコアを実際より15-20%高く見積もる。
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
+            <div className="text-2xl mb-3">🗑️</div>
+            <h3 className="font-bold mb-2 text-sm">合格したら終わり</h3>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              予備校もChatGPTも「合格」がゴール。合格した瞬間、勉強した知識は散逸していく。何百時間もかけた知識が、資産として残らない。
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
+            <div className="text-2xl mb-3">🤖</div>
+            <h3 className="font-bold mb-2 text-sm">AIの知識は平均値</h3>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              ChatGPTに聞けば何でも答える。でもそれはインターネットの平均値。あなた固有の理解、経験、間違いのパターンは一切反映されない。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ━━━ 3層AI構造 ━━━ */}
+      <section id="three-layers" className="max-w-5xl mx-auto px-6 py-24">
+        <div className="text-center mb-16">
+          <SectionLabel>核心技術</SectionLabel>
+          <h2 className="text-3xl sm:text-4xl font-black mb-4 leading-tight">
+            3層AI構造
+          </h2>
+          <p className="text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed">
+            教えるAI、検証するAI、あなたの知識の分身AI。<br />
+            3つのAIが連携して、「わかったつもり」を構造的に破壊する。
+          </p>
+        </div>
+
+        {/* フロー図 */}
+        <div className="flex flex-col items-center gap-3 mb-16">
+          <div className="flex items-center gap-2 text-sm font-bold text-rose-600 bg-rose-50 px-4 py-2 rounded-full border border-rose-200">
+            <BookOpen className="w-4 h-4" /> Mentor が教える
+          </div>
+          <div className="w-px h-6 bg-[var(--color-border)]" />
+          <div className="text-xs text-[var(--color-text-muted)]">知識をインプット</div>
+          <div className="w-px h-6 bg-[var(--color-border)]" />
+          <div className="flex items-center gap-2 text-sm font-bold text-violet-600 bg-violet-50 px-4 py-2 rounded-full border border-violet-200">
+            <FlaskConical className="w-4 h-4" /> Prism が検証する
+          </div>
+          <div className="w-px h-6 bg-[var(--color-border)]" />
+          <div className="text-xs text-[var(--color-text-muted)]">検証済みの知識だけが通過</div>
+          <div className="w-px h-6 bg-[var(--color-border)]" />
+          <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200">
+            <Network className="w-4 h-4" /> Core に蓄積される
+          </div>
+        </div>
+
+        {/* 3カード */}
         <div className="grid md:grid-cols-3 gap-6">
-          <ModeCard
-            icon={MessageCircle}
-            title="AIチューター"
-            description="わからない論点をその場で質問。条文・判例を正確に引用しながら、試験に直結する解説をします。"
-            gradient="bg-gradient-to-br from-rose-500 to-pink-600"
-            features={[
-              "概念の解説・解き方のコツ",
-              "語呂合わせ・暗記法の提案",
-              "試験の傾向分析・学習計画",
-              "弱点に合わせた個別指導",
+          <LayerCard
+            number="1"
+            name="Mentor"
+            nameEn="メンター"
+            tagline="教えるAI"
+            description="RAG教材に基づく正確な知識をインプット。条文番号・判例名を引用し、不確実な情報は「要確認」と明記。ハルシネーションをここで止める。"
+            details={[
+              "条文・判例・会計基準を正確に引用",
+              "試験ごとの出題傾向を理解",
+              "語呂合わせ・暗記法も提案",
+              "わからない論点を即座に質問",
             ]}
+            color="bg-rose-500"
+            borderColor="border-rose-200 hover:border-rose-400"
           />
-          <ModeCard
-            icon={Target}
-            title="練習問題AI"
-            description="本番に限りなく近いオリジナル問題をAIが無限に生成。科目・分野・難易度を指定して集中特訓。"
-            gradient="bg-gradient-to-br from-indigo-500 to-violet-600"
-            features={[
-              "本番形式の4択問題を即座に生成",
-              "全選択肢の詳細解説つき",
-              "難易度5段階で調整可能",
-              "弱点分野を重点的に出題",
+          <LayerCard
+            number="2"
+            name="Prism"
+            nameEn="プリズム"
+            tagline="検証するAI — 門番"
+            description="ユーザーの知識を分解・検証する門番。間違いを検知しても正解を教えず、自力で修正させる。「暗記」を「理解」に変換するプロセス。"
+            details={[
+              "6段階の質問で理解度を測定",
+              "戦略的に間違えて弱点を暴く",
+              "正解を教えない — 自力修正が核心",
+              "検証済みの知識だけをCoreに渡す",
             ]}
+            color="bg-violet-500"
+            borderColor="border-violet-200 hover:border-violet-400"
           />
-          <ModeCard
-            icon={PenTool}
-            title="論述添削AI"
-            description="論文式試験の答案・小論文を、採点官と同じ視点で100点満点で添削。数十秒で結果を返却。"
-            gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
-            features={[
-              "100点満点の多軸スコアリング",
-              "段落ごとの詳細フィードバック",
-              "具体的な書き直し例つき",
-              "致命的ミスの優先警告",
+          <LayerCard
+            number="3"
+            name="Core"
+            nameEn="コア"
+            tagline="あなたの知識の分身"
+            description="まっさらなAIに、あなたが教えた知識だけが蓄積される。ChatGPTは百科事典。Coreはあなたの脳のクローン。世界に1つだけ。"
+            details={[
+              "Coreの穴 = あなたの知識の穴",
+              "知識マップとして可視化",
+              "時間が経つほど価値が上がる",
+              "将来、知識資産として収益化可能",
             ]}
+            color="bg-emerald-500"
+            borderColor="border-emerald-200 hover:border-emerald-400"
           />
         </div>
       </section>
 
-      {/* Supported Exams */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-black text-center mb-4">
-          対応試験
-        </h2>
-        <p className="text-[var(--color-text-secondary)] text-center mb-14">
-          主要な国家試験・資格試験をカバー。
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {nationalExams.map((exam) => {
-            const IconComp = EXAM_ICONS[exam.id] || Target;
-            return (
-              <div
-                key={exam.id}
-                className="exam-badge p-5 rounded-xl group cursor-default"
-              >
-                <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-3 group-hover:bg-[var(--color-accent)]/20 transition-colors">
-                  <IconComp className="w-5 h-5 text-[var(--color-accent)]" />
+      {/* ━━━ Prism 修正ループ詳細 ━━━ */}
+      <section className="bg-[var(--color-bg-secondary)] border-y border-[var(--color-border)]">
+        <div className="max-w-4xl mx-auto px-6 py-24">
+          <div className="text-center mb-14">
+            <SectionLabel>最重要プロセス</SectionLabel>
+            <h2 className="text-3xl font-black mb-4">
+              Prismの修正ループ
+            </h2>
+            <p className="text-[var(--color-text-secondary)] max-w-xl mx-auto">
+              間違えた時こそ、最も学べる瞬間。<br />
+              AIが正解を言わないことが、このシステムの核心です。
+            </p>
+          </div>
+
+          <div className="max-w-lg mx-auto space-y-0">
+            {[
+              { step: "1", text: "あなたが間違える", sub: "Prismが誤りを検知" },
+              { step: "2", text: "「なぜそう思った？」", sub: "AIが原因を掘る（正解は教えない）" },
+              { step: "3", text: "自分の誤解の原因に気づく", sub: "思考の癖が見える" },
+              { step: "4", text: "「正しくはどうなると思う？」", sub: "自力で修正させる" },
+              { step: "5", text: "自分の言葉で正しく説明し直す", sub: "暗記ではなく理解に変換" },
+              { step: "6", text: "検証済みの知識がCoreに蓄積", sub: "二度と同じ間違いをしない" },
+            ].map((item, i) => (
+              <div key={item.step} className="flex gap-4 items-start">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    {item.step}
+                  </div>
+                  {i < 5 && <div className="w-px h-10 bg-[var(--color-border)]" />}
                 </div>
-                <p className="text-sm font-bold">{exam.shortName}</p>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                  {exam.subjects.length}科目対応
-                </p>
+                <div className="pb-6">
+                  <p className="text-sm font-bold">{item.text}</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{item.sub}</p>
+                </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          <div className="mt-10 p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-accent)]/20 text-center">
+            <p className="text-sm font-bold text-[var(--color-accent)] mb-1">科学的根拠</p>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-lg mx-auto">
+              教えることで学ぶ「プロテジェ効果」は定着率90%（講義を聞くだけの18倍）。
+              ファインマン・テクニックの研究では平均パフォーマンスが2倍に向上。
+              Prismはこの科学的知見をAIで自動化したシステムです。
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-black text-center mb-4">
-          ChatGPTに聞くのとは何が違う？
-        </h2>
-        <p className="text-[var(--color-text-secondary)] text-center mb-14 max-w-2xl mx-auto">
-          ChatGPTは汎用AI。StudyEnginesは試験合格のためだけに設計されたAI。
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureCard icon={Brain} title="試験特化の知識" description="各試験の出題傾向・採点基準・頻出論点を深く理解。「試験でどう問われるか」の視点で全て回答。" />
-          <FeatureCard icon={Target} title="無限の練習問題" description="本番と同じ形式・難易度のオリジナル問題をAIが生成。過去問を解き尽くしても、練習を止める必要がない。" glowClass="icon-glow-blue" />
-          <FeatureCard icon={BarChart3} title="弱点の可視化" description="練習結果を自動分析。どの科目・分野が弱いか一目でわかり、効率的な学習ができる。" glowClass="icon-glow-emerald" />
-          <FeatureCard icon={PenTool} title="論述の即時添削" description="予備校は返却まで1〜2週間。StudyEnginesは数十秒。深夜でも早朝でも、何度でも添削。" glowClass="icon-glow-amber" />
-          <FeatureCard icon={Clock} title="24時間いつでも" description="深夜3時の追い込みでも、通勤電車の中でも。質問したい時にすぐ聞ける。予約不要。" />
-          <FeatureCard icon={Shield} title="正確な引用" description="条文番号・判例名・会計基準を正確に引用。不確実な場合は正直に伝える。嘘の知識を教えない。" glowClass="icon-glow-blue" />
+      {/* ━━━ 9つの学習モード ━━━ */}
+      <section id="features" className="max-w-5xl mx-auto px-6 py-24">
+        <div className="text-center mb-14">
+          <SectionLabel>学習モード</SectionLabel>
+          <h2 className="text-3xl sm:text-4xl font-black mb-4">9つのモードで、あらゆる角度から学ぶ</h2>
+          <p className="text-[var(--color-text-secondary)] max-w-xl mx-auto">
+            インプットから仕上げまで。3層AIが全モードを貫通する。
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* インプット */}
+          <div>
+            <div className="flex items-center gap-2 mb-6 pb-3 border-b border-rose-200">
+              <div className="w-6 h-6 rounded bg-rose-500 flex items-center justify-center">
+                <BookOpen className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="text-sm font-black text-rose-600">インプット</span>
+              <span className="text-xs text-[var(--color-text-muted)]">Mentor層</span>
+            </div>
+            <div className="space-y-1">
+              <ModeItem icon={MessageCircle} title="AIチューター" description="わからない論点をその場で質問。条文・判例を引用しながら、試験に直結する解説。" />
+              <ModeItem icon={Layers} title="暗記カード" description="AI自動生成 + 間隔反復。科学的に最適なタイミングで復習を提示。" />
+              <ModeItem icon={Target} title="練習問題" description="本番形式の問題をAIが無限に生成。弱点を自動検出して重点出題。" />
+            </div>
+          </div>
+
+          {/* 深い理解 */}
+          <div>
+            <div className="flex items-center gap-2 mb-6 pb-3 border-b border-violet-200">
+              <div className="w-6 h-6 rounded bg-violet-500 flex items-center justify-center">
+                <FlaskConical className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="text-sm font-black text-violet-600">深い理解</span>
+              <span className="text-xs text-[var(--color-text-muted)]">Prism層</span>
+            </div>
+            <div className="space-y-1">
+              <ModeItem icon={GraduationCap} title="教えてマスター" description="逆転授業。あなたが先生、AIが生徒。6段階質問と戦略的間違いで理解度を暴く。" />
+              <ModeItem icon={HelpCircle} title="ソクラテス式問答" description="AIが答えを教えず、問いだけ投げて自力到達させる。思考力を鍛える。" />
+              <ModeItem icon={Lightbulb} title="ケーススタディ" description="実際の事例シナリオで判断を迫る。知識を実務に接続する。" />
+            </div>
+          </div>
+
+          {/* 仕上げ */}
+          <div>
+            <div className="flex items-center gap-2 mb-6 pb-3 border-b border-emerald-200">
+              <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center">
+                <Network className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="text-sm font-black text-emerald-600">仕上げ</span>
+              <span className="text-xs text-[var(--color-text-muted)]">Core蓄積</span>
+            </div>
+            <div className="space-y-1">
+              <ModeItem icon={Swords} title="弱点ドリル" description="弱点を自動抽出して連続出題。穴を埋めるまで止まらない。" />
+              <ModeItem icon={PenTool} title="論述添削" description="100点満点で多軸採点。構成・論理・正確性・表現の4軸で即時フィードバック。" />
+              <ModeItem icon={BarChart3} title="学習分析" description="弱点・正答率・ストリーク・合格予測をリアルタイムで可視化。" />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Comparison */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-black text-center mb-14">
-          他の学習方法との比較
-        </h2>
+      {/* ━━━ ChatGPTとの違い ━━━ */}
+      <section className="max-w-5xl mx-auto px-6 py-24">
+        <div className="text-center mb-14">
+          <SectionLabel>比較</SectionLabel>
+          <h2 className="text-3xl font-black mb-4">ChatGPTに聞くのとは何が違う？</h2>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-6 mb-14">
+          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+            <div className="text-sm font-bold text-[var(--color-text-muted)] mb-4">ChatGPT / Claude</div>
+            <ul className="space-y-3">
+              {[
+                "インターネットの平均値で回答",
+                "試験の採点基準を知らない",
+                "間違いを指摘しても正解を教えてしまう",
+                "あなたの弱点を覚えていない",
+                "使い終わったら何も残らない",
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)]">
+                  <span className="text-[var(--color-text-muted)] mt-0.5">-</span>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="p-8 rounded-2xl border-2 border-[var(--color-accent)] bg-[var(--color-bg-card)]">
+            <div className="text-sm font-bold text-[var(--color-accent)] mb-4">StudyEngines</div>
+            <ul className="space-y-3">
+              {[
+                "試験ごとの教材・条文・判例に基づいて回答",
+                "採点基準・出題傾向を理解して指導",
+                "正解を教えず、自力で修正させる（Prism）",
+                "弱点を自動検出して重点的に強化",
+                "Coreにあなただけの知識資産が蓄積される",
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-[var(--color-success)] mt-0.5 shrink-0" />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
         <div className="overflow-x-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
                 <th className="py-4 px-4 text-left text-sm font-medium text-[var(--color-text-muted)]" />
-                <th className="py-4 px-4 text-center text-sm font-medium text-[var(--color-text-muted)]">
-                  予備校
-                </th>
-                <th className="py-4 px-4 text-center text-sm font-medium text-[var(--color-text-muted)]">
-                  ChatGPT
-                </th>
+                <th className="py-4 px-4 text-center text-sm font-medium text-[var(--color-text-muted)]">予備校</th>
+                <th className="py-4 px-4 text-center text-sm font-medium text-[var(--color-text-muted)]">ChatGPT</th>
                 <th className="py-4 px-4 text-center text-sm font-medium">
                   <span className="text-[var(--color-accent)] font-bold">StudyEngines</span>
                 </th>
@@ -290,24 +478,84 @@ export default function Home() {
               <ComparisonRow feature="月額料金" yobiko="3〜10万円" chatgpt="$20/月" studyengines="9,800円/月" />
               <ComparisonRow feature="質問対応" yobiko="講義後のみ" chatgpt="即座" studyengines="即座" />
               <ComparisonRow feature="試験特化度" yobiko="高い" chatgpt="低い" studyengines="高い" />
-              <ComparisonRow feature="練習問題生成" yobiko="なし" chatgpt="不安定" studyengines="本番形式で無限" />
-              <ComparisonRow feature="論述添削" yobiko="1〜2週間" chatgpt="曖昧" studyengines="数十秒" />
+              <ComparisonRow feature="理解度の検証" yobiko="模試のみ" chatgpt="なし" studyengines="Prismが常時検証" />
+              <ComparisonRow feature="知識の蓄積" yobiko="なし" chatgpt="なし" studyengines="Coreに自動蓄積" />
               <ComparisonRow feature="弱点分析" yobiko="模試のみ" chatgpt="なし" studyengines="自動分析" />
-              <ComparisonRow feature="合格予測" yobiko="なし" chatgpt="なし" studyengines="リアルタイム" />
+              <ComparisonRow feature="合格後の価値" yobiko="なし" chatgpt="なし" studyengines="知識資産として残る" />
             </tbody>
           </table>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-black text-center mb-14">料金</h2>
+      {/* ━━━ 対応試験 ━━━ */}
+      <section className="bg-[var(--color-bg-secondary)] border-y border-[var(--color-border)]">
+        <div className="max-w-5xl mx-auto px-6 py-24">
+          <div className="text-center mb-14">
+            <SectionLabel>対応試験</SectionLabel>
+            <h2 className="text-3xl font-black mb-4">{examCount}の試験に対応</h2>
+            <p className="text-[var(--color-text-secondary)]">国家試験から資格試験まで幅広くカバー。順次追加中。</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {EXAM_CATEGORIES.map((exam) => (
+              <div
+                key={exam.id}
+                className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors"
+              >
+                <p className="text-sm font-bold">{exam.shortName}</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                  {exam.subjects.length}科目{exam.hasEssay ? " / 論述あり" : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ━━━ 学習中の体験価値 ━━━ */}
+      <section className="max-w-4xl mx-auto px-6 py-24">
+        <div className="text-center mb-14">
+          <SectionLabel>体験価値</SectionLabel>
+          <h2 className="text-3xl font-black mb-4">学習中に起きること</h2>
+          <p className="text-[var(--color-text-secondary)] max-w-xl mx-auto">
+            「将来知識が資産になる」だけじゃない。学んでいる今この瞬間に価値がある。
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-6">
+          {[
+            { icon: Eye, title: "知識の穴の発見", text: "教えようとして「説明できない」。練習問題で正解していたのに教えられない = 本当は理解していなかった。" },
+            { icon: Network, title: "知識の再構築", text: "バラバラだった知識が教える過程で繋がる。「あ、これとこれ関係あったのか」。" },
+            { icon: TrendingUp, title: "Coreの成長を見る", text: "先週5項目が今週15項目に。学習の積み重ねが目に見える。モチベーションが続く。" },
+            { icon: Brain, title: "思考の言語化", text: "なんとなくの理解を言葉にする訓練。論述・面接・口述試験に直結するスキル。" },
+          ].map((item) => (
+            <div key={item.title} className="flex gap-4 p-6 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
+              <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <item.icon className="w-5 h-5 text-[var(--color-accent)]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold mb-1">{item.title}</h3>
+                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{item.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ━━━ 料金 ━━━ */}
+      <section id="pricing" className="max-w-5xl mx-auto px-6 py-24">
+        <div className="text-center mb-14">
+          <SectionLabel>料金</SectionLabel>
+          <h2 className="text-3xl font-black mb-4">予備校の1/10以下</h2>
+        </div>
+
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-          <div className="card-shine p-8 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)]">
+          {/* Free */}
+          <div className="p-8 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
             <h3 className="text-lg font-bold mb-2">無料プラン</h3>
             <div className="text-4xl font-black mb-6">¥0</div>
             <ul className="space-y-3 mb-8">
-              {["3回まで利用可能", "全試験・全モード対応", "AIチューター・練習問題・添削"].map((item) => (
+              {["3回まで利用可能", "全試験・全モード対応", "3層AI体験"].map((item) => (
                 <li key={item} className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                   <CheckCircle className="w-4 h-4 text-[var(--color-success)]" />
                   {item}
@@ -322,22 +570,25 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="card-shine p-8 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border-2 border-[var(--color-accent)] relative">
+          {/* Pro */}
+          <div className="p-8 rounded-2xl bg-[var(--color-bg-card)] border-2 border-[var(--color-accent)] relative">
             <div className="absolute -top-3 left-6 px-3 py-1 rounded-full bg-[var(--color-accent)] text-white text-xs font-bold">
               おすすめ
             </div>
             <h3 className="text-lg font-bold mb-2">プロプラン</h3>
             <div className="text-4xl font-black mb-1">
               ¥9,800
-              <span className="text-sm font-normal text-[var(--color-text-secondary)]">
-                /月
-              </span>
+              <span className="text-sm font-normal text-[var(--color-text-secondary)]">/月</span>
             </div>
-            <p className="text-xs text-[var(--color-text-muted)] mb-6">
-              予備校の1/10以下の費用
-            </p>
+            <p className="text-xs text-[var(--color-text-muted)] mb-6">予備校の1/10以下の費用</p>
             <ul className="space-y-3 mb-8">
-              {["全モード無制限", "全試験・全科目対応", "合格予測・学習パス", "弱点分析・学習進捗", "AIチューター会話履歴"].map((item) => (
+              {[
+                "9モード全て無制限",
+                "3層AI（Mentor/Prism/Core）",
+                "合格予測・学習パス",
+                "弱点分析・知識マップ",
+                "Core知識蓄積",
+              ].map((item) => (
                 <li key={item} className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                   <CheckCircle className="w-4 h-4 text-[var(--color-success)]" />
                   {item}
@@ -354,72 +605,68 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-black text-center mb-14">
-          よくある質問
-        </h2>
+      {/* ━━━ FAQ ━━━ */}
+      <section className="max-w-3xl mx-auto px-6 py-24">
+        <div className="text-center mb-14">
+          <SectionLabel>FAQ</SectionLabel>
+          <h2 className="text-3xl font-black">よくある質問</h2>
+        </div>
         <div className="space-y-4">
           {[
-            { q: "ChatGPTで十分では？", a: "ChatGPTは汎用AIです。試験ごとの採点基準・出題傾向・頻出論点を理解していません。StudyEnginesは各試験のプロとして回答するため、的外れな学習を防げます。" },
-            { q: "どの試験に対応していますか？", a: "司法試験・予備試験、中小企業診断士、公認会計士、行政書士、社労士、宅建士、FP、公務員試験、医師・看護師国家試験、大学入試小論文に対応。順次追加中。" },
-            { q: "AIが間違った知識を教えることはありませんか？", a: "100%正確とは保証できませんが、不確実な場合は正直に「要確認」と伝えます。条文・判例は番号まで引用するため、自分で検証もしやすい設計です。" },
-            { q: "合格予測はどのくらい正確ですか？", a: "練習問題の正答率と各試験の合格ラインを比較して算出しています。問題数が増えるほど精度が上がります。" },
-            { q: "無料プランで何ができますか？", a: "3回まで全機能が使えます。AIチューター、練習問題、添削の全モードを試せます。" },
-            { q: "解約はいつでもできますか？", a: "はい。いつでも解約可能。解約後も月末まで利用できます。" },
+            {
+              q: "3層AIとは何ですか？",
+              a: "Mentor（教えるAI）、Prism（検証するAI）、Core（あなたの知識の分身AI）の3つが連携するシステムです。Mentorで知識を入れ、Prismが本当に理解しているか検証し、検証済みの知識だけがCoreに蓄積されます。",
+            },
+            {
+              q: "ChatGPTで十分では？",
+              a: "ChatGPTは汎用AIです。試験ごとの採点基準・出題傾向を理解していません。また、間違いを指摘すると正解を教えてしまいます。StudyEnginesのPrismは正解を教えず自力修正させることで、暗記ではなく理解を促します。",
+            },
+            {
+              q: "Coreは具体的に何をするのですか？",
+              a: "あなたが学習する過程で検証された知識だけを蓄積する、まっさらなAIです。ChatGPTの知識は世界共通ですが、Coreの中身はあなただけのもの。Coreの穴 = あなたの知識の穴として可視化されます。",
+            },
+            {
+              q: "AIが間違った知識を教えることはありませんか？",
+              a: "100%正確とは保証できませんが、Mentorは教材データベースに基づいて回答し、不確実な場合は「要確認」と明記します。条文番号・判例名を引用するため自分で検証しやすい設計です。",
+            },
+            {
+              q: "どの試験に対応していますか？",
+              a: `${examCount}試験に対応しています。司法試験・予備試験、行政書士、宅建士、公認会計士、中小企業診断士、社労士、FP、公務員試験、医師・看護師国家試験、ITパスポートなど。順次追加中です。`,
+            },
+            {
+              q: "無料プランで何ができますか？",
+              a: "3回まで全機能が使えます。9つの学習モード全て、3層AI全てを体験できます。まずは自分の試験で試してみてください。",
+            },
+            {
+              q: "解約はいつでもできますか？",
+              a: "はい。いつでも解約可能で、解約後も月末まで利用できます。Coreに蓄積された知識データはエクスポート可能です。",
+            },
           ].map((faq) => (
             <details
               key={faq.q}
-              className="faq-item p-6 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)] group"
+              className="faq-item p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] group"
             >
-              <summary className="font-bold flex items-center justify-between">
+              <summary className="font-bold flex items-center justify-between cursor-pointer">
                 {faq.q}
                 <ChevronDown className="faq-chevron w-5 h-5 text-[var(--color-text-muted)] shrink-0" />
               </summary>
-              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mt-3">
-                {faq.a}
-              </p>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mt-3">{faq.a}</p>
             </details>
           ))}
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-black text-center mb-14">利用者の声</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { name: "T.K.", exam: "予備試験受験生", text: "弱点が科目・分野単位で可視化されるので、闇雲に勉強しなくて済む。合格予測のスコアが上がっていくのがモチベーションになる。" },
-            { name: "S.M.", exam: "宅建受験生", text: "通勤電車の中で練習問題を解いてる。10分で5問、解説もその場で読める。紙の問題集を持ち歩かなくなった。" },
-            { name: "A.Y.", exam: "行政書士受験生", text: "条文の趣旨から丁寧に解説してくれるので、暗記じゃなく理解できる。予備校の先生より質問しやすい。" },
-          ].map((t) => (
-            <div key={t.name} className="card-shine p-6 rounded-2xl bg-gradient-to-br from-[var(--color-bg-card)] to-[var(--color-bg-secondary)] border border-[var(--color-border)]">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center text-sm font-bold text-[var(--color-accent)]">
-                  {t.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm font-bold">{t.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">{t.exam}</p>
-                </div>
-              </div>
-              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{t.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
+      {/* ━━━ CTA ━━━ */}
       <section className="max-w-5xl mx-auto px-6 py-24">
         <div className="relative text-center p-14 rounded-3xl overflow-hidden">
           <div className="absolute inset-0 mesh-hero" />
           <div className="absolute inset-0 border border-[var(--color-accent)]/20 rounded-3xl" />
           <div className="relative z-10">
             <h2 className="text-3xl sm:text-4xl font-black mb-4">
-              合格への最短ルートを、AIと。
+              勉強した時間を、ゼロにしない。
             </h2>
             <p className="text-[var(--color-text-secondary)] mb-8 max-w-lg mx-auto">
-              無料で3回試せます。まずはあなたの試験で質問してみてください。
+              無料で3回試せます。まずはあなたの試験で、3層AIを体験してください。
             </p>
             <Link
               href="/login"
@@ -432,22 +679,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* ━━━ Footer ━━━ */}
       <footer className="border-t border-[var(--color-border)] py-8">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-[var(--color-text-muted)]">
-            &copy; 2026 StudyEngines
-          </p>
+          <p className="text-sm text-[var(--color-text-muted)]">&copy; 2026 StudyEngines</p>
           <div className="flex gap-6 text-sm text-[var(--color-text-muted)]">
-            <Link href="/terms" className="hover:text-[var(--color-text-secondary)]">
-              利用規約
-            </Link>
-            <Link href="/privacy" className="hover:text-[var(--color-text-secondary)]">
-              プライバシーポリシー
-            </Link>
-            <Link href="/legal" className="hover:text-[var(--color-text-secondary)]">
-              特定商取引法に基づく表記
-            </Link>
+            <Link href="/terms" className="hover:text-[var(--color-text-secondary)]">利用規約</Link>
+            <Link href="/privacy" className="hover:text-[var(--color-text-secondary)]">プライバシーポリシー</Link>
+            <Link href="/legal" className="hover:text-[var(--color-text-secondary)]">特定商取引法に基づく表記</Link>
           </div>
         </div>
       </footer>

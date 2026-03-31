@@ -9,11 +9,11 @@ export const metadata: Metadata = {
     template: "%s | StudyEngines",
   },
   description:
-    "司法試験・予備試験・中小企業診断士・公認会計士・行政書士・宅建——AIチューター、練習問題生成、論述添削。あなた専用の講師が24時間対応。",
+    "学びながら自分専用AIを育てる。3層AI（Mentor/Prism/Core）が教え、検証し、あなただけの知識を蓄積。48試験対応。予備校の1/10以下。",
   openGraph: {
-    title: "StudyEngines | 国家試験・資格試験のAI学習パートナー",
+    title: "StudyEngines | 学びながら、自分専用AIを育てる",
     description:
-      "AIチューター・練習問題生成・論述添削の3モード。予備校の1/10の費用で、24時間いつでも学習。",
+      "3層AI構造で「わかったつもり」を破壊する。教えるAI、検証するAI、あなたの知識の分身AI。48試験対応。",
     type: "website",
     siteName: "StudyEngines",
   },
