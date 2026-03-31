@@ -1,7 +1,13 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import {
+  BedrockRuntimeClient,
+  InvokeModelCommand,
+} from "@aws-sdk/client-bedrock-runtime";
 
-const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY!;
-const VOYAGE_MODEL = "voyage-3-lite"; // 1024次元, 高速, 低コスト
+const BEDROCK_MODEL = "amazon.titan-embed-text-v2:0"; // 1024次元
+const BEDROCK_REGION = process.env.AWS_REGION || "us-east-1";
+
+const bedrockClient = new BedrockRuntimeClient({ region: BEDROCK_REGION });
 
 export interface DocumentChunk {
   examId: string;
@@ -20,55 +26,42 @@ export interface SearchResult {
 }
 
 /**
- * Voyage AIでテキストをembeddingに変換
+ * Bedrock Titan Embed v2で1件のテキストをembeddingに変換
  */
-export async function embedTexts(texts: string[]): Promise<number[][]> {
-  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${VOYAGE_API_KEY}`,
-    },
+async function embedSingle(text: string, inputType: "search_document" | "search_query"): Promise<number[]> {
+  const command = new InvokeModelCommand({
+    modelId: BEDROCK_MODEL,
+    contentType: "application/json",
+    accept: "application/json",
     body: JSON.stringify({
-      input: texts,
-      model: VOYAGE_MODEL,
-      input_type: "document",
+      inputText: text,
+      dimensions: 1024,
+      normalize: true,
+      embeddingTypes: [inputType === "search_query" ? "float" : "float"],
     }),
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Voyage API error: ${response.status} ${err}`);
-  }
+  const response = await bedrockClient.send(command);
+  const body = JSON.parse(new TextDecoder().decode(response.body));
+  return body.embedding;
+}
 
-  const data = await response.json();
-  return data.data.map((d: { embedding: number[] }) => d.embedding);
+/**
+ * 複数テキストをembeddingに変換（順次処理）
+ */
+export async function embedTexts(texts: string[]): Promise<number[][]> {
+  const results: number[][] = [];
+  for (const text of texts) {
+    results.push(await embedSingle(text, "search_document"));
+  }
+  return results;
 }
 
 /**
  * クエリ用embedding（検索に最適化）
  */
 export async function embedQuery(query: string): Promise<number[]> {
-  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${VOYAGE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      input: [query],
-      model: VOYAGE_MODEL,
-      input_type: "query",
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Voyage API error: ${response.status} ${err}`);
-  }
-
-  const data = await response.json();
-  return data.data[0].embedding;
+  return embedSingle(query, "search_query");
 }
 
 /**

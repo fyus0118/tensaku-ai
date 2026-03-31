@@ -55,20 +55,18 @@ export async function POST(request: Request) {
 
   let systemPrompt = buildPracticeSystemPrompt(exam.name);
 
-  // RAGコンテキストを取得
-  if (process.env.VOYAGE_API_KEY) {
-    try {
-      const ragContext = await buildPracticeRAGContext({
-        examId,
-        subject,
-        topic,
-      });
-      if (ragContext) {
-        systemPrompt += ragContext;
-      }
-    } catch (err) {
-      console.error("RAGコンテキスト取得エラー:", err);
+  // RAGコンテキストを取得（Bedrock Titan Embed）
+  try {
+    const ragContext = await buildPracticeRAGContext({
+      examId,
+      subject,
+      topic,
+    });
+    if (ragContext) {
+      systemPrompt += ragContext;
     }
+  } catch (err) {
+    console.error("RAGコンテキスト取得エラー:", err);
   }
 
   // 適応学習: 弱点と推奨難易度を取得

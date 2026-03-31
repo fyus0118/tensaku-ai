@@ -86,20 +86,18 @@ export async function POST(request: Request) {
 
   let systemPrompt = buildTutorSystemPrompt(exam.name, subject);
 
-  // RAGコンテキストを取得して注入
-  if (process.env.VOYAGE_API_KEY) {
-    try {
-      const ragContext = await buildTutorRAGContext({
-        query: message,
-        examId,
-        subject,
-      });
-      if (ragContext) {
-        systemPrompt += ragContext;
-      }
-    } catch (err) {
-      console.error("RAGコンテキスト取得エラー:", err);
+  // RAGコンテキストを取得して注入（Bedrock Titan Embed）
+  try {
+    const ragContext = await buildTutorRAGContext({
+      query: message,
+      examId,
+      subject,
+    });
+    if (ragContext) {
+      systemPrompt += ragContext;
     }
+  } catch (err) {
+    console.error("RAGコンテキスト取得エラー:", err);
   }
 
   // 直近の会話履歴をメッセージに変換（最大20件）
