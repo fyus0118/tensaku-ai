@@ -155,7 +155,8 @@ export async function POST(request: Request) {
           encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
         );
         controller.close();
-      } catch {
+      } catch (err) {
+        console.error("chat streaming error:", err);
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: "エラーが発生しました" })}\n\n`)
         );

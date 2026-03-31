@@ -28,10 +28,17 @@ export async function GET(request: NextRequest) {
   if (examDate) update.target_exam_date = examDate;
   if (dailyGoal) update.daily_goal = dailyGoal;
 
-  await supabase
+  const { error: updateErr } = await supabase
     .from("profiles")
     .update(update)
     .eq("id", user.id);
+
+  if (updateErr) {
+    console.error("select-exam profile update error:", updateErr);
+    return isAjax
+      ? NextResponse.json({ error: "更新に失敗しました" }, { status: 500 })
+      : NextResponse.redirect(`${origin}/dashboard`);
+  }
 
   // 学習開始を記録（exam-statusで検知するため）
   // 既にこの試験のメッセージがあればスキップ
@@ -43,13 +50,14 @@ export async function GET(request: NextRequest) {
     .limit(1);
 
   if (!existing || existing.length === 0) {
-    await supabase.from("chat_messages").insert({
+    const { error: insertErr } = await supabase.from("chat_messages").insert({
       user_id: user.id,
       exam_id: examId,
       subject: "_system",
       role: "assistant",
       content: "学習を開始しました",
     });
+    if (insertErr) console.error("select-exam marker insert error:", insertErr);
   }
 
   return isAjax

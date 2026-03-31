@@ -158,7 +158,8 @@ ${content}`;
           )
         );
         controller.close();
-      } catch {
+      } catch (err) {
+        console.error("review streaming error:", err);
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({ error: "添削中にエラーが発生しました" })}\n\n`

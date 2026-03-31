@@ -149,7 +149,8 @@ ${knowledgeContext}
         }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
         controller.close();
-      } catch {
+      } catch (err) {
+        console.error("core streaming error:", err);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "エラーが発生しました" })}\n\n`));
         controller.close();
       }

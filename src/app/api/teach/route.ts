@@ -144,8 +144,8 @@ export async function POST(request: Request) {
                 understanding_depth: entry.type === "verified" ? 5 : 3,
               }))
             );
-          } catch {
-            // テーブル未作成でも動作を止めない
+          } catch (err) {
+            console.error("core_knowledge insert error:", err);
           }
         }
 
@@ -163,8 +163,8 @@ export async function POST(request: Request) {
               correct,
               verified,
             });
-          } catch {
-            // テーブル未作成でも動作を止めない
+          } catch (err) {
+            console.error("teach_diagnostics insert error:", err);
           }
         }
 
@@ -192,7 +192,8 @@ export async function POST(request: Request) {
           encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
         );
         controller.close();
-      } catch {
+      } catch (err) {
+        console.error("teach streaming error:", err);
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: "エラーが発生しました" })}\n\n`)
         );

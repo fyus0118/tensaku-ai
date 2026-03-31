@@ -119,7 +119,8 @@ export async function POST(request: Request) {
     }
 
     return Response.json({ question: parsed, examId, subject });
-  } catch {
+  } catch (err) {
+    console.error("practice generation error:", err);
     return Response.json({ error: "問題生成中にエラーが発生しました" }, { status: 500 });
   }
 }
