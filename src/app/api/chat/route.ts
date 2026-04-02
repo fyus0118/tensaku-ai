@@ -92,6 +92,7 @@ export async function POST(request: Request) {
       query: message,
       examId,
       subject,
+      userId: user.id,
     });
     if (ragContext) {
       systemPrompt += ragContext;

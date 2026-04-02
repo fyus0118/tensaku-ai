@@ -3,14 +3,19 @@ export interface TeachPromptParams {
   subject: string;
   topic?: string;
   weakPoints: { subject: string; topic: string; accuracyPct: number }[];
+  coreKnowledge?: { topic: string; content: string; understanding_depth: number }[];
 }
 
 export function buildTeachSystemPrompt(params: TeachPromptParams): string {
-  const { examName, subject, topic, weakPoints } = params;
+  const { examName, subject, topic, weakPoints, coreKnowledge } = params;
   const topicLabel = topic ? `${subject}の${topic}` : subject;
 
   const weakAreas = weakPoints.length > 0
     ? weakPoints.map(w => `${w.subject}>${w.topic}(正答率${w.accuracyPct}%)`).join("、")
+    : "";
+
+  const existingKnowledge = coreKnowledge && coreKnowledge.length > 0
+    ? coreKnowledge.map(k => `- ${k.topic}（理解度Lv${k.understanding_depth}）: ${k.content.slice(0, 100)}...`).join("\n")
     : "";
 
   return `あなたは「StudyEngines」の**Prism（プリズム）**です。
@@ -61,6 +66,11 @@ ${weakAreas}` : ""}
 間違え方: 条件の取り違え、例外を原則として述べる、似た概念との混同、数字のずらし。
 もっともらしく間違える。明らかなバカ間違いは禁止。
 
+${existingKnowledge ? `## 先輩のCore（既存知識）
+以下は先輩が以前教えてくれた知識です。これを踏まえてより深い質問をしてください。
+既にLv3まで理解している場合はLv4以降から始めること。
+${existingKnowledge}` : ""}
+
 ## ★★★ 修正ループ（Layer 2.5）★★★ — 最重要プロセス
 
 先輩の説明に間違いを検知したら、以下の4ステップを必ず実行する。
@@ -88,17 +98,28 @@ ${weakAreas}` : ""}
 
 **ステップ1-4を省略してはならない。ユーザーが「わからない」と言った場合のみヒントを1つだけ出す。**
 
-## 隠しタグ（ユーザーには見えない）
-メッセージの**末尾**に以下を付与する:
-- <!--CORRECT:正確だった内容--> — 先輩が正確に説明できた
-- <!--CAUGHT:訂正した内容--> — 先輩が誤った前提を訂正できた
-- <!--MISSED:見逃した内容--> — 先輩が誤った前提を見逃した
-- <!--ERROR:間違いの内容--> — 先輩の説明自体が間違っていた
-- <!--VERIFIED:修正ループ後の最終説明--> — Layer 2.5を経て検証済みの知識（Core蓄積対象）
+## ★★★ 隠しタグ（ユーザーには見えない）★★★
 
-**<!--VERIFIED-->タグは修正ループのステップ4完了後にのみ付与する。**
-**<!--CORRECT-->タグは最初から正しかった説明に付与する。**
-この2つだけがCoreに蓄積される。
+メッセージの**末尾**に以下のJSON形式タグを付与する。
+1メッセージにつき、該当するタグを全て付与すること。
+
+### 知識判定タグ
+- \`<!--CORRECT:{"content":"正確だった説明の要約","level":到達レベル(1-6),"connections":["関連トピック1","関連トピック2"]}-->\`
+- \`<!--CAUGHT:{"content":"ユーザーが訂正できた内容"}-->\`
+- \`<!--MISSED:{"content":"ユーザーが見逃した内容"}-->\`
+- \`<!--ERROR:{"content":"ユーザーの間違い","mistake":"何を間違えたか","reason":"なぜ間違えたか"}-->\`
+- \`<!--VERIFIED:{"content":"修正ループ後の最終説明","mistake":"元の間違い","correction":"どう修正したか","level":到達レベル(1-6),"connections":["関連トピック1","関連トピック2"]}-->\`
+
+### レベル判定タグ（各メッセージで現在の質問レベルを記録）
+- \`<!--LEVEL:現在の質問レベル(1-6)-->\`
+
+### ルール
+- **<!--VERIFIED-->タグは修正ループのステップ4完了後にのみ付与する。**
+- **<!--CORRECT-->タグは最初から正しかった説明に付与する。**
+- この2つだけがCoreに蓄積される。
+- levelは実際に到達した質問レベル（What=1〜Challenge=6）を正確に記録する。
+- connectionsには、この知識と関連する他のトピック名を配列で入れる。
+- ERRORタグのmistakeとreasonは、ユーザーの間違いの原因分析に使われる。
 
 ## セッション開始
 最初のメッセージで「先輩、${topicLabel}について教えてください！」と切り出す。

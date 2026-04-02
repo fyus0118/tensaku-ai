@@ -84,6 +84,21 @@ export const flashcardsPutSchema = z.object({
   quality: z.number().int().min(0).max(5),
 });
 
+// ── Materials POST ───────────────────────────
+export const materialsPostSchema = z.object({
+  examId: z.string().min(1).max(100),
+  subject: z.string().min(1).max(200),
+  topic: z.string().max(200).optional(),
+  title: z.string().max(200).optional(),
+  content: z.string().min(10).max(100000),
+});
+
+// ── Materials DELETE ─────────────────────────
+export const materialsDeleteSchema = z.object({
+  title: z.string().min(1).max(200),
+  examId: z.string().min(1).max(100),
+});
+
 // ── Helper ────────────────────────────────────
 export function parseBody<T>(schema: z.ZodType<T>, data: unknown):
   | { success: true; data: T }

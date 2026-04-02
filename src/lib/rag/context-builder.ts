@@ -1,4 +1,4 @@
-import { searchDocuments, type SearchResult } from "./embeddings";
+import { searchDocuments, searchUserDocuments, type SearchResult } from "./embeddings";
 
 /**
  * RAG検索結果をプロンプトに注入可能な形式に整形
@@ -21,20 +21,39 @@ export async function buildTutorRAGContext(params: {
   query: string;
   examId: string;
   subject?: string;
+  userId?: string;
 }): Promise<string> {
   try {
-    const results = await searchDocuments({
-      query: params.query,
-      examId: params.examId,
-      subject: params.subject,
-      limit: 5,
-      similarityThreshold: 0.3,
-    });
+    const searches = [
+      searchDocuments({
+        query: params.query,
+        examId: params.examId,
+        subject: params.subject,
+        limit: 5,
+        similarityThreshold: 0.3,
+      }),
+    ];
 
-    return formatRAGContext(results);
+    if (params.userId) {
+      searches.push(
+        searchUserDocuments({
+          query: params.query,
+          userId: params.userId,
+          examId: params.examId,
+          subject: params.subject,
+          limit: 3,
+          similarityThreshold: 0.25,
+        })
+      );
+    }
+
+    const allResults = (await Promise.all(searches)).flat();
+    // 関連度順にソートして上位8件
+    allResults.sort((a, b) => b.similarity - a.similarity);
+    return formatRAGContext(allResults.slice(0, 8));
   } catch (error) {
     console.error("RAG context build failed:", error);
-    return ""; // RAGが失敗してもチューターは動作する
+    return "";
   }
 }
 
@@ -45,23 +64,43 @@ export async function buildPracticeRAGContext(params: {
   examId: string;
   subject: string;
   topic?: string;
+  userId?: string;
 }): Promise<string> {
   const query = params.topic
     ? `${params.subject} ${params.topic} 過去問 重要論点`
     : `${params.subject} 頻出問題 重要論点`;
 
   try {
-    const results = await searchDocuments({
-      query,
-      examId: params.examId,
-      subject: params.subject,
-      limit: 3,
-      similarityThreshold: 0.25,
-    });
+    const searches = [
+      searchDocuments({
+        query,
+        examId: params.examId,
+        subject: params.subject,
+        limit: 3,
+        similarityThreshold: 0.25,
+      }),
+    ];
 
-    if (results.length === 0) return "";
+    if (params.userId) {
+      searches.push(
+        searchUserDocuments({
+          query,
+          userId: params.userId,
+          examId: params.examId,
+          subject: params.subject,
+          limit: 2,
+          similarityThreshold: 0.25,
+        })
+      );
+    }
 
-    const formatted = results.map((r, i) =>
+    const results = (await Promise.all(searches)).flat();
+    results.sort((a, b) => b.similarity - a.similarity);
+    const top = results.slice(0, 5);
+
+    if (top.length === 0) return "";
+
+    const formatted = top.map((r, i) =>
       `[過去の出題例${i + 1}] ${r.topic || r.subject}\n${r.content}`
     ).join("\n\n");
 
@@ -79,19 +118,39 @@ export async function buildReviewRAGContext(params: {
   examId: string;
   subject: string;
   content: string;
+  userId?: string;
 }): Promise<string> {
   try {
-    const results = await searchDocuments({
-      query: `${params.subject} 採点基準 模範解答 ${params.content.slice(0, 200)}`,
-      examId: params.examId,
-      subject: params.subject,
-      limit: 3,
-      similarityThreshold: 0.25,
-    });
+    const query = `${params.subject} 採点基準 模範解答 ${params.content.slice(0, 200)}`;
+    const searches = [
+      searchDocuments({
+        query,
+        examId: params.examId,
+        subject: params.subject,
+        limit: 3,
+        similarityThreshold: 0.25,
+      }),
+    ];
+
+    if (params.userId) {
+      searches.push(
+        searchUserDocuments({
+          query,
+          userId: params.userId,
+          examId: params.examId,
+          subject: params.subject,
+          limit: 2,
+          similarityThreshold: 0.25,
+        })
+      );
+    }
+
+    const results = (await Promise.all(searches)).flat();
+    results.sort((a, b) => b.similarity - a.similarity);
 
     if (results.length === 0) return "";
 
-    return formatRAGContext(results);
+    return formatRAGContext(results.slice(0, 5));
   } catch (error) {
     console.error("Review RAG context build failed:", error);
     return "";

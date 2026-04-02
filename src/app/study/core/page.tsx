@@ -7,8 +7,24 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   ArrowLeft, Send, Loader2, Brain, MessageCircle, Map,
+  ChevronDown, ChevronRight, AlertCircle, CheckCircle2,
+  RefreshCw, TrendingUp, Clock, Target,
 } from "lucide-react";
 import { getExamById } from "@/lib/exams";
+
+// ── 型定義 ──
+
+interface TopicDetail {
+  topic: string;
+  entries: number;
+  maxDepth: number;
+  avgConfidence: number;
+  sources: { correct: number; verified: number };
+  connections: string[];
+  lastTaught: string;
+  teachCount: number;
+  hasMistakes: boolean;
+}
 
 interface SubjectStat {
   subject: string;
@@ -16,16 +32,77 @@ interface SubjectStat {
   coveredTopics: number;
   coverage: number;
   avgDepth: number;
+  avgConfidence: number;
   entries: number;
+  topics: TopicDetail[];
+  gaps: string[];
+}
+
+interface DiagnosticsStat {
+  totalSessions: number;
+  totalCorrect: number;
+  totalVerified: number;
+  totalErrors: number;
+  totalMissed: number;
+  maxLevelReached: number;
+}
+
+interface RecentEntry {
+  subject: string;
+  topic: string | null;
+  content: string;
+  source: string;
+  depth: number;
+  confidence: number;
+  hasMistake: boolean;
+  createdAt: string;
 }
 
 interface CoreStats {
   totalEntries: number;
   totalCoverage: number;
   subjects: SubjectStat[];
+  diagnostics: DiagnosticsStat;
+  recentEntries: RecentEntry[];
 }
 
-interface ChatMessage { role: "user" | "assistant"; content: string; }
+interface ChatMessage { role: "user" | "assistant"; content: string }
+
+// ── ヘルパー ──
+
+const levelLabels = ["", "What", "Why", "How", "What-if", "Compare", "Challenge"];
+
+function depthColor(depth: number): string {
+  if (depth >= 5) return "text-emerald-600";
+  if (depth >= 3) return "text-amber-600";
+  return "text-red-500";
+}
+
+function depthBg(depth: number): string {
+  if (depth >= 5) return "bg-emerald-500";
+  if (depth >= 3) return "bg-amber-500";
+  return "bg-red-500";
+}
+
+function confidenceLabel(c: number): string {
+  if (c >= 0.9) return "確実";
+  if (c >= 0.7) return "理解";
+  if (c >= 0.5) return "曖昧";
+  return "不安";
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}分前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}時間前`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}日前`;
+  return `${Math.floor(days / 7)}週間前`;
+}
+
+// ── メインコンポーネント ──
 
 export default function CorePage() {
   return (
@@ -121,6 +198,7 @@ function CoreContent() {
 
   return (
     <main className="min-h-screen flex flex-col">
+      {/* ヘッダー */}
       <header className="border-b border-[var(--color-border)] shrink-0">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -155,76 +233,38 @@ function CoreContent() {
       {/* 知識マップ */}
       {tab === "map" && (
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-6 py-8">
+          <div className="max-w-4xl mx-auto px-6 py-8">
             {loadingStats ? (
               <div className="flex justify-center py-20">
                 <Loader2 className="w-6 h-6 animate-spin text-[var(--color-text-muted)]" />
               </div>
             ) : !stats || stats.totalEntries === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center mx-auto mb-6">
-                  <Brain className="w-10 h-10 text-[var(--color-accent)]" />
-                </div>
-                <h2 className="text-xl font-bold mb-2">Coreはまだ空です</h2>
-                <p className="text-sm text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">
-                  教えてマスターで知識を教えると、検証済みの知識がCoreに蓄積されます。
-                  Coreはあなたの知識の分身 — あなたが教えたことだけを知っています。
-                </p>
-                <Link href={`/study/teach?exam=${examId}`}
-                  className="inline-block py-3 px-8 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors">
-                  教えてマスターを始める
-                </Link>
-              </div>
+              <EmptyCore examId={examId} />
             ) : (
               <>
-                {/* 全体スコア */}
-                <div className="text-center mb-10">
-                  <div className="w-24 h-24 rounded-full border-4 border-[var(--color-border)] flex items-center justify-center mx-auto mb-4 relative">
-                    <span className={`text-3xl font-black ${
-                      stats.totalCoverage >= 70 ? "text-[var(--color-success)]" :
-                      stats.totalCoverage >= 40 ? "text-[var(--color-warning)]" :
-                      "text-[var(--color-danger)]"
-                    }`}>{stats.totalCoverage}%</span>
-                  </div>
-                  <h2 className="text-lg font-bold mb-1">知識充足度</h2>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
-                    {stats.totalEntries}項目の知識を蓄積済み
-                  </p>
-                </div>
+                {/* 全体サマリー */}
+                <OverviewSection stats={stats} />
+
+                {/* 診断サマリー */}
+                <DiagnosticsSection diagnostics={stats.diagnostics} />
 
                 {/* 科目別マップ */}
-                <div className="space-y-4">
-                  {stats.subjects.map(s => (
-                    <div key={s.subject} className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)]">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-sm">{s.subject}</h3>
-                        <span className={`text-xs font-bold ${
-                          s.coverage >= 70 ? "text-[var(--color-success)]" :
-                          s.coverage >= 40 ? "text-[var(--color-warning)]" :
-                          s.coverage > 0 ? "text-[var(--color-danger)]" :
-                          "text-[var(--color-text-muted)]"
-                        }`}>{s.coverage}%</span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-[var(--color-bg-secondary)] mb-2">
-                        <div className={`h-full rounded-full transition-all ${
-                          s.coverage >= 70 ? "bg-[var(--color-success)]" :
-                          s.coverage >= 40 ? "bg-[var(--color-warning)]" :
-                          s.coverage > 0 ? "bg-[var(--color-danger)]" :
-                          "bg-[var(--color-border)]"
-                        }`} style={{ width: `${Math.max(s.coverage, 2)}%` }} />
-                      </div>
-                      <div className="flex items-center gap-4 text-[10px] text-[var(--color-text-muted)]">
-                        <span>{s.coveredTopics}/{s.totalTopics}トピック</span>
-                        <span>{s.entries}項目</span>
-                        {s.avgDepth > 0 && <span>理解度Lv{s.avgDepth}</span>}
-                        {s.coverage === 0 && <span className="text-[var(--color-danger)]">未学習</span>}
-                      </div>
-                    </div>
-                  ))}
+                <div className="mt-8">
+                  <h2 className="text-sm font-bold text-[var(--color-text-secondary)] mb-4">科目別の知識マップ</h2>
+                  <div className="space-y-3">
+                    {stats.subjects.map(s => (
+                      <SubjectCard key={s.subject} stat={s} examId={examId} />
+                    ))}
+                  </div>
                 </div>
 
-                <p className="text-center text-xs text-[var(--color-text-muted)] mt-8">
-                  Coreの穴 = あなたの知識の穴。0%の科目から教えてマスターで埋めていきましょう。
+                {/* 最近の蓄積タイムライン */}
+                {stats.recentEntries.length > 0 && (
+                  <TimelineSection entries={stats.recentEntries} />
+                )}
+
+                <p className="text-center text-xs text-[var(--color-text-muted)] mt-10">
+                  Coreの穴 = あなたの知識の穴。未学習のトピックから教えてマスターで埋めていきましょう。
                 </p>
               </>
             )}
@@ -243,10 +283,15 @@ function CoreContent() {
                     <Brain className="w-8 h-8 text-[var(--color-accent)]" />
                   </div>
                   <h2 className="text-lg font-bold mb-2">Coreに質問する</h2>
-                  <p className="text-sm text-[var(--color-text-secondary)] max-w-md mx-auto">
+                  <p className="text-sm text-[var(--color-text-secondary)] max-w-md mx-auto mb-6">
                     Coreはあなたが教えた知識だけで回答します。ChatGPTの知識は混ざりません。
                     知らないことは「まだ教わっていません」と正直に答えます。
                   </p>
+                  {stats && stats.totalEntries > 0 && (
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      現在 {stats.totalEntries}項目の知識を保持中
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -312,5 +357,253 @@ function CoreContent() {
         </>
       )}
     </main>
+  );
+}
+
+// ── サブコンポーネント ──
+
+function EmptyCore({ examId }: { examId: string }) {
+  return (
+    <div className="text-center py-16">
+      <div className="w-20 h-20 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center mx-auto mb-6">
+        <Brain className="w-10 h-10 text-[var(--color-accent)]" />
+      </div>
+      <h2 className="text-xl font-bold mb-2">Coreはまだ空です</h2>
+      <p className="text-sm text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">
+        教えてマスターで知識を教えると、検証済みの知識がCoreに蓄積されます。
+        Coreはあなたの知識の分身 — あなたが教えたことだけを知っています。
+      </p>
+      <Link href={`/study/teach?exam=${examId}`}
+        className="inline-block py-3 px-8 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors">
+        教えてマスターを始める
+      </Link>
+    </div>
+  );
+}
+
+function OverviewSection({ stats }: { stats: CoreStats }) {
+  const totalGaps = stats.subjects.reduce((sum, s) => sum + s.gaps.length, 0);
+  const totalTopics = stats.subjects.reduce((sum, s) => sum + s.totalTopics, 0);
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
+        <div className={`text-2xl font-black ${
+          stats.totalCoverage >= 70 ? "text-emerald-600" :
+          stats.totalCoverage >= 40 ? "text-amber-600" :
+          "text-red-500"
+        }`}>{stats.totalCoverage}%</div>
+        <div className="text-[10px] text-[var(--color-text-muted)] mt-1">知識充足度</div>
+      </div>
+      <div className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
+        <div className="text-2xl font-black text-[var(--color-text)]">{stats.totalEntries}</div>
+        <div className="text-[10px] text-[var(--color-text-muted)] mt-1">蓄積済み知識</div>
+      </div>
+      <div className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
+        <div className="text-2xl font-black text-red-500">{totalGaps}</div>
+        <div className="text-[10px] text-[var(--color-text-muted)] mt-1">未学習トピック / {totalTopics}</div>
+      </div>
+      <div className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
+        <div className="text-2xl font-black text-[var(--color-accent)]">
+          Lv{stats.diagnostics.maxLevelReached}
+        </div>
+        <div className="text-[10px] text-[var(--color-text-muted)] mt-1">最高到達レベル</div>
+      </div>
+    </div>
+  );
+}
+
+function DiagnosticsSection({ diagnostics }: { diagnostics: DiagnosticsStat }) {
+  if (diagnostics.totalSessions === 0) return null;
+  const total = diagnostics.totalCorrect + diagnostics.totalVerified + diagnostics.totalErrors + diagnostics.totalMissed;
+  if (total === 0) return null;
+
+  const correctRate = Math.round(((diagnostics.totalCorrect + diagnostics.totalVerified) / total) * 100);
+
+  return (
+    <div className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Target className="w-4 h-4 text-[var(--color-accent)]" />
+        <h3 className="text-sm font-bold">Prism診断サマリー</h3>
+        <span className="text-[10px] text-[var(--color-text-muted)]">{diagnostics.totalSessions}セッション</span>
+      </div>
+      <div className="grid grid-cols-4 gap-2 text-center">
+        <div>
+          <div className="text-lg font-bold text-emerald-600">{diagnostics.totalCorrect}</div>
+          <div className="text-[10px] text-[var(--color-text-muted)]">正確</div>
+        </div>
+        <div>
+          <div className="text-lg font-bold text-blue-600">{diagnostics.totalVerified}</div>
+          <div className="text-[10px] text-[var(--color-text-muted)]">修正→検証</div>
+        </div>
+        <div>
+          <div className="text-lg font-bold text-red-500">{diagnostics.totalErrors}</div>
+          <div className="text-[10px] text-[var(--color-text-muted)]">間違い</div>
+        </div>
+        <div>
+          <div className="text-lg font-bold text-amber-500">{diagnostics.totalMissed}</div>
+          <div className="text-[10px] text-[var(--color-text-muted)]">見逃し</div>
+        </div>
+      </div>
+      <div className="mt-3 w-full h-2 rounded-full bg-[var(--color-bg-secondary)] overflow-hidden flex">
+        {diagnostics.totalCorrect > 0 && (
+          <div className="h-full bg-emerald-500" style={{ width: `${(diagnostics.totalCorrect / total) * 100}%` }} />
+        )}
+        {diagnostics.totalVerified > 0 && (
+          <div className="h-full bg-blue-500" style={{ width: `${(diagnostics.totalVerified / total) * 100}%` }} />
+        )}
+        {diagnostics.totalErrors > 0 && (
+          <div className="h-full bg-red-500" style={{ width: `${(diagnostics.totalErrors / total) * 100}%` }} />
+        )}
+        {diagnostics.totalMissed > 0 && (
+          <div className="h-full bg-amber-500" style={{ width: `${(diagnostics.totalMissed / total) * 100}%` }} />
+        )}
+      </div>
+      <div className="text-[10px] text-[var(--color-text-muted)] mt-2 text-right">
+        知識定着率 {correctRate}%
+      </div>
+    </div>
+  );
+}
+
+function SubjectCard({ stat, examId }: { stat: SubjectStat; examId: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] overflow-hidden">
+      {/* 科目ヘッダー */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex items-center justify-between hover:bg-[var(--color-bg-secondary)]/50 transition-colors"
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-1">
+            {expanded ? <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" /> : <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)]" />}
+          </div>
+          <div className="text-left flex-1 min-w-0">
+            <h3 className="font-bold text-sm truncate">{stat.subject}</h3>
+            <div className="flex items-center gap-3 text-[10px] text-[var(--color-text-muted)] mt-0.5">
+              <span>{stat.coveredTopics}/{stat.totalTopics}トピック</span>
+              <span>{stat.entries}項目</span>
+              {stat.avgDepth > 0 && <span>平均Lv{stat.avgDepth}</span>}
+              {stat.gaps.length > 0 && (
+                <span className="text-red-500">{stat.gaps.length}個の穴</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-24 h-2 rounded-full bg-[var(--color-bg-secondary)]">
+            <div className={`h-full rounded-full transition-all ${
+              stat.coverage >= 70 ? "bg-emerald-500" :
+              stat.coverage >= 40 ? "bg-amber-500" :
+              stat.coverage > 0 ? "bg-red-500" :
+              "bg-[var(--color-border)]"
+            }`} style={{ width: `${Math.max(stat.coverage, 2)}%` }} />
+          </div>
+          <span className={`text-xs font-bold w-10 text-right ${
+            stat.coverage >= 70 ? "text-emerald-600" :
+            stat.coverage >= 40 ? "text-amber-600" :
+            stat.coverage > 0 ? "text-red-500" :
+            "text-[var(--color-text-muted)]"
+          }`}>{stat.coverage}%</span>
+        </div>
+      </button>
+
+      {/* 展開: トピック詳細 */}
+      {expanded && (
+        <div className="border-t border-[var(--color-border)] px-4 py-3">
+          {/* 学習済みトピック */}
+          {stat.topics.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {stat.topics.map(t => (
+                <div key={t.topic} className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[var(--color-bg-secondary)]/50">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium truncate">{t.topic}</span>
+                      {t.hasMistakes && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">修正済</span>
+                      )}
+                      {t.teachCount > 1 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 flex items-center gap-0.5">
+                          <RefreshCw className="w-2.5 h-2.5" />{t.teachCount}回
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-[9px] text-[var(--color-text-muted)] mt-0.5">
+                      <span className={depthColor(t.maxDepth)}>Lv{t.maxDepth} {levelLabels[t.maxDepth] || ""}</span>
+                      <span>{confidenceLabel(t.avgConfidence)} ({Math.round(t.avgConfidence * 100)}%)</span>
+                      {t.connections.length > 0 && (
+                        <span>{t.connections.length}接続</span>
+                      )}
+                      <span className="flex items-center gap-0.5">
+                        <Clock className="w-2.5 h-2.5" />{timeAgo(t.lastTaught)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5, 6].map(l => (
+                      <div key={l} className={`w-1.5 h-4 rounded-sm ${l <= t.maxDepth ? depthBg(t.maxDepth) : "bg-[var(--color-border)]"}`} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 未学習トピック（穴） */}
+          {stat.gaps.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-2 mb-1">
+                <AlertCircle className="w-3 h-3" />未学習（{stat.gaps.length}個）
+              </div>
+              {stat.gaps.map(gap => (
+                <Link key={gap} href={`/study/teach?exam=${examId}&topic=${encodeURIComponent(gap)}`}
+                  className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-red-50 transition-colors group">
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-red-300 shrink-0" />
+                  <span className="text-xs text-red-600 group-hover:text-red-700">{gap}</span>
+                  <span className="text-[9px] text-[var(--color-text-muted)] ml-auto group-hover:text-red-500">教える →</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimelineSection({ entries }: { entries: RecentEntry[] }) {
+  return (
+    <div className="mt-8">
+      <h2 className="text-sm font-bold text-[var(--color-text-secondary)] mb-4 flex items-center gap-2">
+        <TrendingUp className="w-4 h-4" />最近の蓄積
+      </h2>
+      <div className="space-y-2">
+        {entries.map((entry, i) => (
+          <div key={i} className="flex items-start gap-3 py-2 px-3 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+              entry.source === "verified" ? "bg-blue-500" : "bg-emerald-500"
+            }`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-medium truncate">{entry.subject}{entry.topic ? ` > ${entry.topic}` : ""}</span>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded ${
+                  entry.source === "verified" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                }`}>{entry.source === "verified" ? "修正検証" : "正確"}</span>
+                {entry.hasMistake && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">間違い修正</span>
+                )}
+              </div>
+              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 truncate">{entry.content}</p>
+            </div>
+            <div className="text-[9px] text-[var(--color-text-muted)] shrink-0">
+              {timeAgo(entry.createdAt)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

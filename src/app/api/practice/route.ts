@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       examId,
       subject,
       topic,
+      userId: user.id,
     });
     if (ragContext) {
       systemPrompt += ragContext;

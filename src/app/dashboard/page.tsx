@@ -18,6 +18,7 @@ import {
   FileText,
   Zap,
   Brain,
+  BookOpen,
 } from "lucide-react";
 import { EXAM_CATEGORIES, getExamById } from "@/lib/exams";
 import { EXAM_ICON_MAP } from "@/components/ExamIcons";
@@ -155,6 +156,20 @@ export default async function DashboardPage() {
           <section className="mb-12">
             <div className="mb-6">
               <ExamSwitcher currentExamId={targetExam.id} currentExamName={targetExam.name} />
+            </div>
+
+            {/* ── マイ教材 ── */}
+            <div className="mb-8">
+              <Link href={`/study/materials?exam=${targetExam.id}`}
+                className="p-5 rounded-2xl bg-[var(--color-bg-card)] border-2 border-teal-500/20 hover:border-teal-500/50 transition-colors group flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-5 h-5 text-teal-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-bold text-sm flex items-center gap-1">マイ教材 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-teal-500" /></h4>
+                  <p className="text-xs text-[var(--color-text-secondary)]">自分の教材テキストを登録してAIの精度を上げる</p>
+                </div>
+              </Link>
             </div>
 
             {/* ── インプット ── */}

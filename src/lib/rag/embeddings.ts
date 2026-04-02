@@ -138,6 +138,49 @@ export async function searchDocuments(params: {
 }
 
 /**
+ * ユーザー専用教材をベクトル検索
+ */
+export async function searchUserDocuments(params: {
+  query: string;
+  userId: string;
+  examId: string;
+  subject?: string;
+  limit?: number;
+  similarityThreshold?: number;
+}): Promise<SearchResult[]> {
+  const { query, userId, examId, subject, limit = 5, similarityThreshold = 0.3 } = params;
+
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const queryEmbedding = await embedQuery(query);
+
+  const { data, error } = await supabase.rpc("match_user_documents", {
+    query_embedding: JSON.stringify(queryEmbedding),
+    match_user_id: userId,
+    match_exam_id: examId,
+    match_subject: subject || null,
+    match_count: limit,
+    match_threshold: similarityThreshold,
+  });
+
+  if (error) {
+    console.error("User documents search error:", error);
+    return [];
+  }
+
+  return (data || []).map((row: { content: string; subject: string; topic: string; title: string; similarity: number; metadata: Record<string, unknown> }) => ({
+    content: row.content,
+    subject: row.subject,
+    topic: row.topic,
+    similarity: row.similarity,
+    metadata: { ...row.metadata, title: row.title, source: "user" },
+  }));
+}
+
+/**
  * テキストを適切なサイズのチャンクに分割
  */
 export function chunkText(
