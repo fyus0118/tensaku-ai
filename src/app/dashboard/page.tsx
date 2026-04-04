@@ -172,6 +172,20 @@ export default async function DashboardPage() {
               </Link>
             </div>
 
+            {/* ── テキスト ── */}
+            <div className="mb-8">
+              <Link href={`/study/textbook?exam=${targetExam.id}`}
+                className="p-5 rounded-2xl bg-[var(--color-bg-card)] border-2 border-sky-500/20 hover:border-sky-500/50 transition-colors group flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-5 h-5 text-sky-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-bold text-sm flex items-center gap-1">テキスト教材 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-sky-500" /></h4>
+                  <p className="text-xs text-[var(--color-text-secondary)]">科目別に体系的に学ぶ</p>
+                </div>
+              </Link>
+            </div>
+
             {/* ── インプット ── */}
             <div className="mb-8">
               <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">インプット — 知識を入れる</h3>

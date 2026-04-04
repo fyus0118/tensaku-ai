@@ -101,6 +101,60 @@ body {
 }
 .chat-result strong { color: var(--color-text); }
 
+/* Textbook styles */
+.textbook-content h1 { font-size: 1.75rem; font-weight: 800; margin: 2rem 0 1rem; color: var(--color-text); }
+.textbook-content h2 { font-size: 1.35rem; font-weight: 700; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-border); }
+.textbook-content h3 { font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+.textbook-content h4 { font-size: 1rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+.textbook-content p { margin: 0.75rem 0; line-height: 1.9; }
+.textbook-content ul, .textbook-content ol { margin: 0.75rem 0; padding-left: 1.75rem; }
+.textbook-content li { margin: 0.35rem 0; line-height: 1.8; }
+.textbook-content blockquote {
+  border-left: 4px solid var(--color-accent);
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  background: var(--color-accent)/5;
+  color: var(--color-text-secondary);
+  border-radius: 0 8px 8px 0;
+}
+.textbook-content code {
+  background: var(--color-bg-secondary);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.textbook-content pre {
+  background: var(--color-bg-secondary);
+  padding: 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+.textbook-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.95em;
+}
+.textbook-content th, .textbook-content td {
+  border: 1px solid var(--color-border);
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  line-height: 1.6;
+}
+.textbook-content th {
+  background: var(--color-bg-secondary);
+  font-weight: 600;
+}
+.textbook-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 2rem 0;
+}
+.textbook-content strong { color: var(--color-text); font-weight: 700; }
+
 /* ── Gradient Icon Containers ── */
 .icon-glow {
   position: relative;
