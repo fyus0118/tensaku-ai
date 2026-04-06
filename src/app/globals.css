@@ -113,7 +113,7 @@ body {
   border-left: 4px solid var(--color-accent);
   padding: 0.75rem 1rem;
   margin: 1.25rem 0;
-  background: var(--color-accent)/5;
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
   color: var(--color-text-secondary);
   border-radius: 0 8px 8px 0;
 }
@@ -154,6 +154,83 @@ body {
   margin: 2rem 0;
 }
 .textbook-content strong { color: var(--color-text); font-weight: 700; }
+
+/* ── Blog content styles ── */
+.blog-content h1 { font-size: 1.75rem; font-weight: 800; margin: 2.5rem 0 1rem; color: var(--color-text); }
+.blog-content h2 {
+  font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.75rem;
+  padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-border);
+}
+.blog-content h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.5rem; }
+.blog-content h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+.blog-content p { margin: 0.75rem 0; line-height: 2; color: var(--color-text-secondary); }
+.blog-content p:first-child { font-size: 1.1em; color: var(--color-text); }
+.blog-content ul, .blog-content ol { margin: 0.75rem 0; padding-left: 1.75rem; }
+.blog-content li { margin: 0.4rem 0; line-height: 1.9; color: var(--color-text-secondary); }
+.blog-content li::marker { color: var(--color-accent); }
+.blog-content blockquote {
+  border-left: 4px solid var(--color-accent);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+  color: var(--color-text-secondary);
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
+}
+.blog-content code {
+  background: var(--color-bg-secondary);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.88em;
+  color: var(--color-accent);
+}
+.blog-content pre {
+  background: #1a1a1a;
+  color: #e5e5e5;
+  padding: 1.5rem;
+  border-radius: 12px;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  font-size: 0.88em;
+  line-height: 1.7;
+}
+.blog-content pre code { background: none; color: inherit; padding: 0; }
+.blog-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.95em;
+}
+.blog-content th, .blog-content td {
+  border: 1px solid var(--color-border);
+  padding: 0.7rem 1rem;
+  text-align: left;
+  line-height: 1.6;
+}
+.blog-content th {
+  background: var(--color-bg-secondary);
+  font-weight: 700;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.blog-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 2.5rem 0;
+}
+.blog-content strong { color: var(--color-text); font-weight: 700; }
+.blog-content a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.blog-content a:hover { text-decoration-color: var(--color-accent); }
+.blog-content img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 1.5rem 0;
+}
 
 /* ── Gradient Icon Containers ── */
 .icon-glow {
