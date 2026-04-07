@@ -30,8 +30,8 @@ export async function POST(request: Request) {
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 4096,
-    system: `あなたは${exam.name}の暗記カード生成AIです。
-以下のJSON配列形式で暗記カードを生成してください。JSON以外は出力しないでください。
+    system: `あなたは${exam.name}のFlashcards生成AIです。
+以下のJSON配列形式でFlashcardsを生成してください。JSON以外は出力しないでください。
 
 [
   { "front": "問題・キーワード（簡潔に）", "back": "解答・解説（覚えるべきポイント）", "topic": "分野名" },
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 - 紛らわしい知識は比較で整理する`,
     messages: [{
       role: "user",
-      content: `${subject}${topic ? `（${topic}）` : ""}の暗記カードを${count}枚生成してください。`,
+      content: `${subject}${topic ? `（${topic}）` : ""}のFlashcardsを${count}枚生成してください。`,
     }],
   });
 

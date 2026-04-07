@@ -147,7 +147,7 @@ export default function Home() {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 text-[var(--color-accent)] text-sm font-medium mb-8 animate-fade-in">
               <Sparkles className="w-4 h-4" />
-              3層AIで、勉強した時間がゼロにならない
+              勉強した時間が、ゼロにならない学習AI
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-6 animate-fade-in">
@@ -178,7 +178,7 @@ export default function Home() {
                 href="#three-layers"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] font-medium transition-all duration-300"
               >
-                3層AIとは？
+                仕組みを見る
               </a>
             </div>
           </div>
@@ -190,7 +190,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-2 sm:grid-cols-4 gap-8">
           <StatCard value={`${examCount}`} label="対応試験" />
           <StatCard value="9" label="学習モード" />
-          <StatCard value="3層" label="AI構造" />
+          <StatCard value="3つ" label="の専用AI" />
           <StatCard value="24h" label="いつでも対応" />
         </div>
       </section>
@@ -226,12 +226,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ━━━ 3層AI構造 ━━━ */}
+      {/* ━━━ 3つのAI ━━━ */}
       <section id="three-layers" className="max-w-5xl mx-auto px-6 py-24">
         <div className="text-center mb-16">
           <SectionLabel>核心技術</SectionLabel>
           <h2 className="text-3xl sm:text-4xl font-black mb-4 leading-tight">
-            3層AI構造
+            3つのAIが、連携する
           </h2>
           <p className="text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed">
             教えるAI、検証するAI、あなたの知識の分身AI。<br />
@@ -363,7 +363,7 @@ export default function Home() {
           <SectionLabel>学習モード</SectionLabel>
           <h2 className="text-3xl sm:text-4xl font-black mb-4">9つのモードで、あらゆる角度から学ぶ</h2>
           <p className="text-[var(--color-text-secondary)] max-w-xl mx-auto">
-            インプットから仕上げまで。3層AIが全モードを貫通する。
+            インプットから仕上げまで。3つのAIが全モードを貫通する。
           </p>
         </div>
 
@@ -378,9 +378,9 @@ export default function Home() {
               <span className="text-xs text-[var(--color-text-muted)]">Mentor層</span>
             </div>
             <div className="space-y-1">
-              <ModeItem icon={MessageCircle} title="AIチューター" description="わからない論点をその場で質問。条文・判例を引用しながら、試験に直結する解説。" />
-              <ModeItem icon={Layers} title="暗記カード" description="AI自動生成 + 間隔反復。科学的に最適なタイミングで復習を提示。" />
-              <ModeItem icon={Target} title="練習問題" description="本番形式の問題をAIが無限に生成。弱点を自動検出して重点出題。" />
+              <ModeItem icon={MessageCircle} title="Mentor" description="わからない論点をその場で質問。条文・判例を引用しながら、試験に直結する解説。" />
+              <ModeItem icon={Layers} title="Flashcards" description="AI自動生成 + 間隔反復。科学的に最適なタイミングで復習を提示。" />
+              <ModeItem icon={Target} title="Practice" description="本番形式の問題をAIが無限に生成。弱点を自動検出して重点出題。" />
             </div>
           </div>
 
@@ -394,9 +394,9 @@ export default function Home() {
               <span className="text-xs text-[var(--color-text-muted)]">Prism層</span>
             </div>
             <div className="space-y-1">
-              <ModeItem icon={GraduationCap} title="教えてマスター" description="逆転授業。あなたが先生、AIが生徒。6段階質問と戦略的間違いで理解度を暴く。" />
-              <ModeItem icon={HelpCircle} title="ソクラテス式問答" description="AIが答えを教えず、問いだけ投げて自力到達させる。思考力を鍛える。" />
-              <ModeItem icon={Lightbulb} title="ケーススタディ" description="実際の事例シナリオで判断を迫る。知識を実務に接続する。" />
+              <ModeItem icon={GraduationCap} title="Prism Teach" description="逆転授業。あなたが先生、AIが生徒。6段階質問と戦略的間違いで理解度を暴く。" />
+              <ModeItem icon={HelpCircle} title="Prism Socratic" description="AIが答えを教えず、問いだけ投げて自力到達させる。思考力を鍛える。" />
+              <ModeItem icon={Lightbulb} title="Prism Cases" description="実際の事例シナリオで判断を迫る。知識を実務に接続する。" />
             </div>
           </div>
 
@@ -410,9 +410,9 @@ export default function Home() {
               <span className="text-xs text-[var(--color-text-muted)]">Core蓄積</span>
             </div>
             <div className="space-y-1">
-              <ModeItem icon={Swords} title="弱点ドリル" description="弱点を自動抽出して連続出題。穴を埋めるまで止まらない。" />
-              <ModeItem icon={PenTool} title="論述添削" description="100点満点で多軸採点。構成・論理・正確性・表現の4軸で即時フィードバック。" />
-              <ModeItem icon={BarChart3} title="学習分析" description="弱点・正答率・ストリーク・合格予測をリアルタイムで可視化。" />
+              <ModeItem icon={Swords} title="Weakness Drill" description="弱点を自動抽出して連続出題。穴を埋めるまで止まらない。" />
+              <ModeItem icon={PenTool} title="Review" description="100点満点で多軸採点。構成・論理・正確性・表現の4軸で即時フィードバック。" />
+              <ModeItem icon={BarChart3} title="Analytics" description="弱点・正答率・ストリーク・合格予測をリアルタイムで可視化。" />
             </div>
           </div>
         </div>
@@ -555,7 +555,7 @@ export default function Home() {
             <h3 className="text-lg font-bold mb-2">無料プラン</h3>
             <div className="text-4xl font-black mb-6">¥0</div>
             <ul className="space-y-3 mb-8">
-              {["3回まで利用可能", "全試験・全モード対応", "3層AI体験"].map((item) => (
+              {["3回まで利用可能", "全試験・全モード対応", "全AIフル体験"].map((item) => (
                 <li key={item} className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                   <CheckCircle className="w-4 h-4 text-[var(--color-success)]" />
                   {item}
@@ -584,7 +584,7 @@ export default function Home() {
             <ul className="space-y-3 mb-8">
               {[
                 "9モード全て無制限",
-                "3層AI（Mentor/Prism/Core）",
+                "Mentor / Prism / Core 連携",
                 "合格予測・学習パス",
                 "弱点分析・知識マップ",
                 "Core知識蓄積",
@@ -614,8 +614,8 @@ export default function Home() {
         <div className="space-y-4">
           {[
             {
-              q: "3層AIとは何ですか？",
-              a: "Mentor（教えるAI）、Prism（検証するAI）、Core（あなたの知識の分身AI）の3つが連携するシステムです。Mentorで知識を入れ、Prismが本当に理解しているか検証し、検証済みの知識だけがCoreに蓄積されます。",
+              q: "3つのAIとは何ですか？",
+              a: "Mentor（教えるAI）、Prism（検証するAI）、Core（あなたの知識の分身AI）が連携するシステムです。Mentorで知識を入れ、Prismが本当に理解しているか検証し、検証済みの知識だけがCoreに蓄積されます。",
             },
             {
               q: "ChatGPTで十分では？",
@@ -635,7 +635,7 @@ export default function Home() {
             },
             {
               q: "無料プランで何ができますか？",
-              a: "3回まで全機能が使えます。9つの学習モード全て、3層AI全てを体験できます。まずは自分の試験で試してみてください。",
+              a: "3回まで全機能が使えます。9つの学習モード、3つのAI全てを体験できます。まずは自分の試験で試してみてください。",
             },
             {
               q: "解約はいつでもできますか？",
@@ -666,7 +666,7 @@ export default function Home() {
               勉強した時間を、ゼロにしない。
             </h2>
             <p className="text-[var(--color-text-secondary)] mb-8 max-w-lg mx-auto">
-              無料で3回試せます。まずはあなたの試験で、3層AIを体験してください。
+              無料で3回試せます。まずはあなたの試験で体験してください。
             </p>
             <Link
               href="/login"

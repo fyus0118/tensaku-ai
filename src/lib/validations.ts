@@ -93,10 +93,20 @@ export const materialsPostSchema = z.object({
   content: z.string().min(10).max(100000),
 });
 
+// ── Materials PATCH ──────────────────────────
+export const materialsPatchSchema = z.object({
+  examId: z.string().min(1).max(100),
+  subject: z.string().min(1).max(200),
+  topic: z.string().max(200).optional(),
+  title: z.string().max(200).optional(),
+  content: z.string().min(10).max(100000),
+});
+
 // ── Materials DELETE ─────────────────────────
 export const materialsDeleteSchema = z.object({
-  title: z.string().min(1).max(200),
-  examId: z.string().min(1).max(100),
+  id: z.string().min(1).max(300).optional(),
+  title: z.string().min(1).max(200).optional(),
+  examId: z.string().min(1).max(100).optional(),
 });
 
 // ── Helper ────────────────────────────────────

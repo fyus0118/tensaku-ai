@@ -1,3 +1,5 @@
 android/
 ios/
 resources/
+scripts/
+*.tsbuildinfo

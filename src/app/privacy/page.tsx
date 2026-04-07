@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           <p>当サービスは以下の情報を収集します。</p>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>アカウント情報</strong>：メールアドレス</li>
-            <li><strong>学習データ</strong>：チャット履歴、練習問題の回答結果、添削内容、暗記カードデータ、学習ストリーク</li>
+            <li><strong>学習データ</strong>：Mentorの会話履歴、Practiceの回答結果、Review内容、Flashcardsデータ、学習ストリーク</li>
             <li><strong>Core知識データ</strong>：Prismで検証済みとなった知識の説明文、理解度スコア、修正履歴</li>
             <li><strong>決済情報</strong>：Stripeを通じて処理（クレジットカード番号は当サービスでは保持しません）</li>
             <li><strong>利用状況</strong>：アクセスログ、利用頻度</li>
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-bold text-[var(--color-text)] mt-8">2. 情報の利用目的</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>サービスの提供・運営・改善</li>
-            <li>3層AI（Mentor/Prism/Core）による個別最適化された学習体験の提供</li>
+            <li>Mentor・Prism・Coreによる個別最適化された学習体験の提供</li>
             <li>適応学習エンジンによる弱点分析・難易度調整・合格予測</li>
             <li>Core知識データの蓄積・知識マップの生成</li>
             <li>利用料金の請求・決済処理</li>

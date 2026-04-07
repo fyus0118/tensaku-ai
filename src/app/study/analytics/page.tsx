@@ -82,7 +82,7 @@ function AnalyticsContent() {
           <div className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[var(--color-accent)]" />
             <h1 className="text-lg font-bold">
-              学習分析
+              Analytics
               <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
                 {exam.shortName}
               </span>

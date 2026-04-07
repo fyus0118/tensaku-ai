@@ -270,7 +270,7 @@ export async function getPrediction(
     .eq("exam_id", examId);
 
   if (!results || results.length === 0) {
-    return { overallScore: 0, passProbability: 0, subjectScores: [], recommendation: "練習問題を解いて実力を測定しましょう", questionsNeeded: 50 };
+    return { overallScore: 0, passProbability: 0, subjectScores: [], recommendation: "Practiceを解いて実力を測定しましょう", questionsNeeded: 50 };
   }
 
   // 科目別集計
@@ -322,7 +322,7 @@ export async function getPrediction(
   } else if (passProbability >= 50) {
     recommendation = weakest ? `${weakest.subject}（正答率${weakest.accuracy}%）を重点的に強化すれば合格圏内に入れます。` : "全体的にもう少し演習量を増やしましょう。";
   } else {
-    recommendation = weakest ? `まず${weakest.subject}の基礎固めから始めましょう。毎日5問ずつ解くことを目標に。` : "練習問題を繰り返し解いて基礎力をつけましょう。";
+    recommendation = weakest ? `まず${weakest.subject}の基礎固めから始めましょう。毎日5問ずつ解くことを目標に。` : "Practiceを繰り返し解いて基礎力をつけましょう。";
   }
 
   return { overallScore, passProbability, subjectScores, recommendation, questionsNeeded };

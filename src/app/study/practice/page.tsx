@@ -142,7 +142,7 @@ function PracticeContent() {
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-[var(--color-accent)]" />
               <h1 className="text-lg font-bold">
-                練習問題
+                Practice
                 {exam && (
                   <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
                     {exam.shortName}

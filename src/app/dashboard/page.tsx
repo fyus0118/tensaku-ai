@@ -115,16 +115,18 @@ export default async function DashboardPage() {
             )}
             <Link
               href="/settings"
-              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors rounded-lg p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+              aria-label="設定"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5" aria-hidden />
             </Link>
             <form action="/api/auth/signout" method="POST">
               <button
                 type="submit"
-                className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors rounded-lg p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                aria-label="ログアウト"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-5 h-5" aria-hidden />
               </button>
             </form>
           </div>
@@ -196,7 +198,7 @@ export default async function DashboardPage() {
                     <MessageCircle className="w-5 h-5 text-[var(--color-accent)]" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">AIチューター <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Mentor <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">質問・解説・暗記法</p>
                   </div>
                 </Link>
@@ -206,7 +208,7 @@ export default async function DashboardPage() {
                     <Layers className="w-5 h-5 text-[var(--color-accent)]" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">暗記カード <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Flashcards <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">間隔反復で定着</p>
                   </div>
                 </Link>
@@ -216,7 +218,7 @@ export default async function DashboardPage() {
                     <Target className="w-5 h-5 text-[var(--color-accent)]" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">練習問題 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Practice <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">本番形式で無限生成</p>
                   </div>
                 </Link>
@@ -234,7 +236,7 @@ export default async function DashboardPage() {
                     <GraduationCap className="w-5 h-5 text-amber-600" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">教えてマスター <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-amber-600" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Prism Teach <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-amber-600" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">AIに教えて理解を証明</p>
                   </div>
                 </Link>
@@ -244,7 +246,7 @@ export default async function DashboardPage() {
                     <HelpCircle className="w-5 h-5 text-violet-500" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">ソクラテス式問答 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-violet-500" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Prism Socratic <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-violet-500" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">問いで思考を深化</p>
                   </div>
                 </Link>
@@ -254,7 +256,7 @@ export default async function DashboardPage() {
                     <FileText className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">ケーススタディ <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-emerald-500" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Prism Cases <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-emerald-500" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">事例で判断力を鍛える</p>
                   </div>
                 </Link>
@@ -264,14 +266,14 @@ export default async function DashboardPage() {
             {/* ── 仕上げ ── */}
             <div className="mb-4">
               <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">仕上げ — 弱点を潰す</h3>
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <Link href={`/study/weakness?exam=${targetExam.id}`}
                   className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-orange-500/30 transition-colors group flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
                     <Zap className="w-5 h-5 text-orange-500" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">弱点ドリル <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-orange-500" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Weakness Drill <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-orange-500" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">苦手を集中攻撃</p>
                   </div>
                 </Link>
@@ -281,7 +283,7 @@ export default async function DashboardPage() {
                     <PenTool className="w-5 h-5 text-[var(--color-accent)]" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">論述添削 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Review <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">答案を即時採点</p>
                   </div>
                 </Link>
@@ -291,7 +293,7 @@ export default async function DashboardPage() {
                     <BarChart3 className="w-5 h-5 text-[var(--color-accent)]" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">学習分析 <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Analytics <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">弱点・正答率を可視化</p>
                   </div>
                 </Link>
@@ -301,7 +303,7 @@ export default async function DashboardPage() {
                     <Brain className="w-5 h-5 text-[var(--color-accent)]" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">あなたのCore <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
+                    <h4 className="font-bold text-sm flex items-center gap-1">Core <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">知識の分身を見る・質問する</p>
                   </div>
                 </Link>
@@ -428,7 +430,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">
-                      {task.type === "practice" ? "練習問題" : task.type === "flashcard" ? "暗記カード復習" : task.type === "chat" ? "AIに質問" : "添削"}
+                      {task.type === "practice" ? "Practice" : task.type === "flashcard" ? "Flashcards Review" : task.type === "chat" ? "Mentorに質問" : "Review"}
                       {task.subject !== "復習" && ` — ${task.subject}`}
                       {task.topic && ` > ${task.topic}`}
                     </p>

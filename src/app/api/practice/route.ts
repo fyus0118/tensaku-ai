@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "不明な試験カテゴリです" }, { status: 400 });
   }
 
-  let systemPrompt = buildPracticeSystemPrompt(exam.name);
+  let systemPrompt = buildPracticeSystemPrompt(exam.name, questionType || "multiple_choice");
 
   // RAGコンテキストを取得（Bedrock Titan Embed）
   try {
@@ -98,17 +98,33 @@ export async function POST(request: Request) {
     const text =
       response.content[0].type === "text" ? response.content[0].text : "";
 
-    // JSONをパース
+    // JSONをパース（ネストした波括弧を正しく扱う）
     let parsed;
     try {
-      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\{[\s\S]*\})/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[1]);
+      const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (codeBlock) {
+        parsed = JSON.parse(codeBlock[1]);
       } else {
         parsed = JSON.parse(text);
       }
     } catch {
-      return Response.json({ error: "問題の生成に失敗しました。もう一度お試しください。" }, { status: 500 });
+      // コードブロック/全体パース失敗時: 波括弧の対応を追って最外JSONを抽出
+      try {
+        const start = text.indexOf("{");
+        if (start === -1) throw new Error("no JSON");
+        let depth = 0;
+        let end = -1;
+        for (let j = start; j < text.length; j++) {
+          if (text[j] === "{") depth++;
+          else if (text[j] === "}") depth--;
+          if (depth === 0) { end = j; break; }
+        }
+        if (end === -1) throw new Error("unbalanced braces");
+        parsed = JSON.parse(text.slice(start, end + 1));
+      } catch {
+        console.error("practice JSON parse failed. Raw output:", text.slice(0, 500));
+        return Response.json({ error: "問題の生成に失敗しました。もう一度お試しください。" }, { status: 500 });
+      }
     }
 
     // 無料プランの場合、使用回数を増やす

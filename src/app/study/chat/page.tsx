@@ -12,12 +12,99 @@ import {
   MessageCircle,
   Lightbulb,
   BookOpen,
+  ExternalLink,
+  FileText,
+  Library,
 } from "lucide-react";
 import { getExamById } from "@/lib/exams";
+
+interface ChatReference {
+  key: string;
+  source: "official" | "user";
+  subject: string;
+  topic: string | null;
+  title: string | null;
+  similarity: number;
+  excerpt: string;
+  materialId: string | null;
+}
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  references?: ChatReference[];
+}
+
+function ReferencesPanel({
+  examId,
+  references,
+}: {
+  examId: string;
+  references?: ChatReference[];
+}) {
+  if (!references || references.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]/70 p-4">
+      <div className="mb-3 flex items-center gap-2 text-xs font-bold text-[var(--color-text-secondary)]">
+        <Library className="h-4 w-4" />
+        参照した資料
+      </div>
+      <div className="space-y-3">
+        {references.map((reference) => {
+          const href =
+            reference.source === "user" && reference.materialId
+              ? `/study/materials/${encodeURIComponent(reference.materialId)}?exam=${examId}`
+              : reference.topic
+                ? `/study/textbook?exam=${examId}&source=official&topic=${encodeURIComponent(reference.topic)}`
+                : `/study/textbook?exam=${examId}&source=official`;
+
+          return (
+            <Link
+              key={reference.key}
+              href={href}
+              className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 transition-colors hover:border-[var(--color-accent)]/30"
+            >
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                    reference.source === "user"
+                      ? "bg-teal-500/10 text-teal-600"
+                      : "bg-sky-500/10 text-sky-600"
+                  }`}
+                >
+                  {reference.source === "user" ? (
+                    <FileText className="h-3 w-3" />
+                  ) : (
+                    <BookOpen className="h-3 w-3" />
+                  )}
+                  {reference.source === "user" ? "マイ教材" : "公式教材"}
+                </span>
+                <span className="text-[11px] text-[var(--color-text-muted)]">
+                  関連度 {Math.round(reference.similarity * 100)}%
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">
+                    {reference.title || reference.topic || reference.subject}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                    {reference.subject}
+                    {reference.topic ? ` > ${reference.topic}` : ""}
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                    {reference.excerpt}
+                  </p>
+                </div>
+                <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function ChatPage() {
@@ -45,6 +132,7 @@ function ChatContent() {
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [streamingText, setStreamingText] = useState("");
+  const [streamingReferences, setStreamingReferences] = useState<ChatReference[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,9 +143,10 @@ function ChatContent() {
       .then((r) => r.ok ? r.json() : { messages: [] })
       .then((data) => {
         if (data.messages && data.messages.length > 0) {
-          setMessages(data.messages.map((m: { role: string; content: string }) => ({
+          setMessages(data.messages.map((m: { role: string; content: string; metadata?: { references?: ChatReference[] } }) => ({
             role: m.role as "user" | "assistant",
             content: m.content,
+            references: m.metadata?.references || [],
           })));
         }
       })
@@ -78,6 +167,7 @@ function ChatContent() {
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
     setStreamingText("");
+    setStreamingReferences([]);
 
     try {
       const response = await fetch("/api/chat", {
@@ -121,12 +211,16 @@ function ChatContent() {
                   fullText += data.text;
                   setStreamingText(fullText);
                 }
+                if (Array.isArray(data.references)) {
+                  setStreamingReferences(data.references);
+                }
                 if (data.done) {
                   setMessages((prev) => [
                     ...prev,
-                    { role: "assistant", content: fullText },
+                    { role: "assistant", content: fullText, references: data.references || streamingReferences },
                   ]);
                   setStreamingText("");
+                  setStreamingReferences([]);
                 }
               } catch {
                 // ignore
@@ -175,7 +269,7 @@ function ChatContent() {
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-[var(--color-accent)]" />
             <h1 className="text-lg font-bold">
-              AIチューター
+              Mentor
               {exam && (
                 <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
                   {exam.shortName}
@@ -245,6 +339,7 @@ function ChatContent() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.content}
                     </ReactMarkdown>
+                    <ReferencesPanel examId={examId} references={msg.references} />
                   </div>
                 </div>
               )}
@@ -260,6 +355,7 @@ function ChatContent() {
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {streamingText}
                 </ReactMarkdown>
+                <ReferencesPanel examId={examId} references={streamingReferences} />
               </div>
             </div>
           )}

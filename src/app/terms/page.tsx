@@ -33,7 +33,7 @@ export default function TermsPage() {
             <li><strong>「Prism」</strong>：ユーザーの理解度を検証し、修正を促すAI機能</li>
             <li><strong>「Core」</strong>：ユーザーの検証済み知識を蓄積するAI機能</li>
             <li><strong>「Core知識データ」</strong>：Coreに蓄積されたユーザー固有の知識データ</li>
-            <li><strong>「3層AI」</strong>：Mentor、Prism、Coreの総称</li>
+            <li><strong>「AI機能」</strong>：Mentor、Prism、Coreの総称</li>
           </ul>
 
           <h2 className="text-lg font-bold text-[var(--color-text)] mt-8">第3条（アカウント）</h2>
@@ -45,10 +45,10 @@ export default function TermsPage() {
           <h2 className="text-lg font-bold text-[var(--color-text)] mt-8">第4条（サービス内容）</h2>
           <p>当サービスはAIを活用した学習支援ツールであり、以下の機能を提供します。</p>
           <ul className="list-disc pl-6 space-y-1">
-            <li>Mentorによる質問応答・知識のインプット（AIチューター、暗記カード、練習問題）</li>
-            <li>Prismによる理解度の検証（教えてマスター、ソクラテス式問答、ケーススタディ）</li>
+            <li>Mentorによる質問応答・知識のインプット（Mentor、Flashcards、Practice）</li>
+            <li>Prismによる理解度の検証（Prism Teach、Prism Socratic、Prism Cases）</li>
             <li>Coreへの検証済み知識の蓄積・知識マップの可視化</li>
-            <li>弱点ドリル、論述添削、学習分析</li>
+            <li>Weakness Drill、Review、Analytics</li>
             <li>適応学習エンジンによる弱点検出・難易度調整・合格予測</li>
           </ul>
 

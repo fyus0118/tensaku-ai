@@ -79,6 +79,7 @@ create table if not exists public.chat_messages (
   subject text,
   role text not null check (role in ('user', 'assistant')),
   content text not null,
+  metadata jsonb default '{}',
   created_at timestamptz default now()
 );
 

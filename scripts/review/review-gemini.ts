@@ -306,19 +306,19 @@ async function main() {
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`    ❌ ${msg.slice(0, 100)}`);
+      console.error(`    ❌ ${msg}`);
 
-      if (msg.includes("429") || msg.includes("quota") || msg.includes("rate") || msg.includes("Resource has been exhausted")) {
+      if (msg.includes("429") || msg.includes("503") || msg.includes("quota") || msg.includes("rate") || msg.includes("Resource has been exhausted") || msg.includes("high demand") || msg.includes("Service Unavailable")) {
         const retryKey = `retry_${imgFile}`;
         const retryCount = (globalThis as Record<string, number>)[retryKey] || 0;
-        if (retryCount < 3) {
+        if (retryCount < 10) {
           (globalThis as Record<string, number>)[retryKey] = retryCount + 1;
-          const waitSec = 60 * (retryCount + 1); // 60秒、120秒、180秒と増やす
-          console.log(`    ⏸️  レートリミット（${retryCount + 1}/3回目）。${waitSec}秒待機...`);
+          const waitSec = 30 * (retryCount + 1); // 30秒、60秒、...300秒と増やす
+          console.log(`    ⏸️  サーバーエラー（${retryCount + 1}/10回目）。${waitSec}秒待機...`);
           await new Promise(r => setTimeout(r, waitSec * 1000));
           i--; // リトライ
         } else {
-          console.log(`    ⏭️  3回リトライ失敗。スキップ`);
+          console.log(`    ⏭️  10回リトライ失敗。スキップ（再実行で再処理されます）`);
         }
       } else {
         await new Promise(r => setTimeout(r, 3000));

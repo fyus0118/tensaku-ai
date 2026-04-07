@@ -44,7 +44,7 @@ function CaseStudyContent() {
   useEffect(() => {
     if (phase === "session" && selectedSubject && !started) {
       setStarted(true);
-      fetchResponse(`${selectedSubject.name}${selectedTopic ? `の${selectedTopic}` : ""}に関するケーススタディを1つ提示してください。`);
+      fetchResponse(`${selectedSubject.name}${selectedTopic ? `の${selectedTopic}` : ""}に関するPrism Casesを1つ提示してください。`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, selectedSubject]);
@@ -145,7 +145,7 @@ function CaseStudyContent() {
           <Link href="/dashboard" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"><ArrowLeft className="w-5 h-5" /></Link>
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-emerald-400" />
-            <h1 className="text-lg font-bold">ケーススタディ <span className="text-sm font-normal text-[var(--color-text-secondary)]">{exam.shortName}</span></h1>
+            <h1 className="text-lg font-bold">Prism Cases <span className="text-sm font-normal text-[var(--color-text-secondary)]">{exam.shortName}</span></h1>
           </div>
         </div>
       </header>
@@ -183,7 +183,7 @@ function CaseStudyContent() {
           <button onClick={() => setPhase("select")} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"><ArrowLeft className="w-5 h-5" /></button>
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-emerald-400" />
-            <h1 className="text-lg font-bold">ケーススタディ
+            <h1 className="text-lg font-bold">Prism Cases
               <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">{selectedSubject?.name}{selectedTopic && ` / ${selectedTopic}`}</span>
             </h1>
           </div>
@@ -195,7 +195,7 @@ function CaseStudyContent() {
           {messages.length === 0 && !streamingText && !loading && (
             <div className="mb-8 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
               <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-                <span className="font-bold text-emerald-400">ケーススタディ</span> — 実際の事例をもとに判断を下してください。正解は1つとは限りません。
+                <span className="font-bold text-emerald-400">Prism Cases</span> — 実際の事例をもとに判断を下してください。正解は1つとは限りません。
               </p>
             </div>
           )}

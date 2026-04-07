@@ -255,7 +255,7 @@ function TeachContent() {
             </Link>
             <div className="flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-amber-500" />
-              <h1 className="text-lg font-bold">教えてマスター</h1>
+              <h1 className="text-lg font-bold">Prism Teach</h1>
               <span className="text-sm text-[var(--color-text-secondary)]">
                 {exam.shortName}
               </span>
@@ -442,7 +442,7 @@ function TeachContent() {
             <div className="flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-amber-500" />
               <h1 className="text-lg font-bold">
-                教えてマスター
+                Prism Teach
                 <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
                   {selectedSubject?.name}
                   {selectedTopic && ` / ${selectedTopic}`}

@@ -147,7 +147,7 @@ function SocraticContent() {
           <Link href="/dashboard" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"><ArrowLeft className="w-5 h-5" /></Link>
           <div className="flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-violet-400" />
-            <h1 className="text-lg font-bold">ソクラテス式問答 <span className="text-sm font-normal text-[var(--color-text-secondary)]">{exam.shortName}</span></h1>
+            <h1 className="text-lg font-bold">Prism Socratic <span className="text-sm font-normal text-[var(--color-text-secondary)]">{exam.shortName}</span></h1>
           </div>
         </div>
       </header>
@@ -186,7 +186,7 @@ function SocraticContent() {
           <button onClick={() => setPhase("select")} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"><ArrowLeft className="w-5 h-5" /></button>
           <div className="flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-violet-400" />
-            <h1 className="text-lg font-bold">ソクラテス式問答
+            <h1 className="text-lg font-bold">Prism Socratic
               <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">{selectedSubject?.name}{selectedTopic && ` / ${selectedTopic}`}</span>
             </h1>
           </div>
@@ -198,7 +198,7 @@ function SocraticContent() {
           {messages.length === 0 && !streamingText && !loading && (
             <div className="mb-8 p-4 rounded-xl bg-violet-500/5 border border-violet-500/10">
               <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-                <span className="font-bold text-violet-400">ソクラテス式問答</span> — AIは答えを教えません。問いを通じて、あなた自身が答えにたどり着くことを目指します。
+                <span className="font-bold text-violet-400">Prism Socratic</span> — AIは答えを教えません。問いを通じて、あなた自身が答えにたどり着くことを目指します。
               </p>
             </div>
           )}

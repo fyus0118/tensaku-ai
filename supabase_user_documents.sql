@@ -1,12 +1,80 @@
 -- =============================================
--- user_documents: ユーザー持ち込み教材テーブル
--- 共有documentsとは完全分離。user_idスコープ
+-- user_materials / user_documents
+-- 読める教材原本とRAG用チャンクを分離する最新版セットアップSQL
 -- =============================================
 
--- 1. テーブル作成
+set search_path to public, extensions;
+
+-- 1. 教材原本テーブル
+create table if not exists public.user_materials (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  exam_id text not null,
+  subject text not null,
+  topic text,
+  title text not null default '',
+  raw_content text not null,
+  normalized_content text not null,
+  content_format text not null default 'markdown' check (content_format in ('plain', 'markdown')),
+  char_count integer not null default 0,
+  chunk_count integer not null default 0,
+  status text not null default 'ready' check (status in ('processing', 'ready', 'failed')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists user_materials_user_exam_idx
+  on public.user_materials(user_id, exam_id, updated_at desc);
+
+create index if not exists user_materials_user_exam_subject_idx
+  on public.user_materials(user_id, exam_id, subject);
+
+alter table public.user_materials enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_materials' and policyname = 'Users can view own materials'
+  ) then
+    create policy "Users can view own materials"
+      on public.user_materials for select
+      using (auth.uid() = user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_materials' and policyname = 'Users can insert own materials'
+  ) then
+    create policy "Users can insert own materials"
+      on public.user_materials for insert
+      with check (auth.uid() = user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_materials' and policyname = 'Users can update own materials'
+  ) then
+    create policy "Users can update own materials"
+      on public.user_materials for update
+      using (auth.uid() = user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_materials' and policyname = 'Users can delete own materials'
+  ) then
+    create policy "Users can delete own materials"
+      on public.user_materials for delete
+      using (auth.uid() = user_id);
+  end if;
+end $$;
+
+-- 2. RAG用チャンクテーブル
 create table if not exists public.user_documents (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
+  material_id uuid references public.user_materials(id) on delete cascade,
   exam_id text not null,
   subject text not null,
   topic text,
@@ -19,7 +87,7 @@ create table if not exists public.user_documents (
   created_at timestamptz default now()
 );
 
--- 2. インデックス
+-- 3. インデックス
 create index if not exists user_documents_embedding_idx
   on public.user_documents
   using hnsw (embedding vector_cosine_ops)
@@ -31,26 +99,52 @@ create index if not exists user_documents_user_exam_idx
 create index if not exists user_documents_user_exam_subject_idx
   on public.user_documents(user_id, exam_id, subject);
 
--- 3. RLS（本人のみアクセス可能）
+create index if not exists user_documents_material_idx
+  on public.user_documents(user_id, material_id, chunk_index);
+
+-- 4. RLS（本人のみアクセス可能）
 alter table public.user_documents enable row level security;
 
-create policy "Users can view own documents"
-  on public.user_documents for select
-  using (auth.uid() = user_id);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_documents' and policyname = 'Users can view own documents'
+  ) then
+    create policy "Users can view own documents"
+      on public.user_documents for select
+      using (auth.uid() = user_id);
+  end if;
 
-create policy "Users can insert own documents"
-  on public.user_documents for insert
-  with check (auth.uid() = user_id);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_documents' and policyname = 'Users can insert own documents'
+  ) then
+    create policy "Users can insert own documents"
+      on public.user_documents for insert
+      with check (auth.uid() = user_id);
+  end if;
 
-create policy "Users can update own documents"
-  on public.user_documents for update
-  using (auth.uid() = user_id);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_documents' and policyname = 'Users can update own documents'
+  ) then
+    create policy "Users can update own documents"
+      on public.user_documents for update
+      using (auth.uid() = user_id);
+  end if;
 
-create policy "Users can delete own documents"
-  on public.user_documents for delete
-  using (auth.uid() = user_id);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'user_documents' and policyname = 'Users can delete own documents'
+  ) then
+    create policy "Users can delete own documents"
+      on public.user_documents for delete
+      using (auth.uid() = user_id);
+  end if;
+end $$;
 
--- 4. ベクトル検索 RPC（ユーザー専用教材のみ検索）
+-- 5. ベクトル検索 RPC（ユーザー専用教材のみ検索）
 create or replace function match_user_documents(
   query_embedding vector(1024),
   match_user_id uuid,

@@ -13,7 +13,7 @@ export function buildSocraticSystemPrompt(params: SocraticPromptParams): string 
     ? weakPoints.map(w => `${w.subject}>${w.topic}(正答率${w.accuracyPct}%)`).join("、")
     : "";
 
-  return `あなたは「StudyEngines」のソクラテス式問答モードにおける**ソクラテス的対話者**です。
+  return `あなたは「StudyEngines」のPrism Socraticモードにおける**ソクラテス的対話者**です。
 
 ## あなたの役割
 ${examName}の${topicLabel}について、ユーザーに**問いを投げて自力で考えさせる**こと。

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { buildTutorSystemPrompt } from "@/lib/prompts/tutor";
 import { getExamById } from "@/lib/exams";
-import { buildTutorRAGContext } from "@/lib/rag/context-builder";
+import { buildTutorRAGBundle, type RAGReference } from "@/lib/rag/context-builder";
 import { chatPostSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("chat_messages")
-    .select("role, content, created_at")
+    .select("role, content, metadata, created_at")
     .eq("user_id", user.id)
     .eq("exam_id", examId)
     .order("created_at", { ascending: true })
@@ -85,17 +85,19 @@ export async function POST(request: Request) {
   }
 
   let systemPrompt = buildTutorSystemPrompt(exam.name, subject);
+  let references: RAGReference[] = [];
 
   // RAGコンテキストを取得して注入（Bedrock Titan Embed）
   try {
-    const ragContext = await buildTutorRAGContext({
+    const rag = await buildTutorRAGBundle({
       query: message,
       examId,
       subject,
       userId: user.id,
     });
-    if (ragContext) {
-      systemPrompt += ragContext;
+    references = rag.references;
+    if (rag.context) {
+      systemPrompt += rag.context;
     }
   } catch (err) {
     console.error("RAGコンテキスト取得エラー:", err);
@@ -125,6 +127,10 @@ export async function POST(request: Request) {
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ references })}\n\n`)
+        );
+
         for await (const event of stream) {
           if (
             event.type === "content_block_delta" &&
@@ -141,7 +147,14 @@ export async function POST(request: Request) {
         // DBに保存
         await supabase.from("chat_messages").insert([
           { user_id: user.id, exam_id: examId, subject, role: "user", content: message },
-          { user_id: user.id, exam_id: examId, subject, role: "assistant", content: fullResult },
+          {
+            user_id: user.id,
+            exam_id: examId,
+            subject,
+            role: "assistant",
+            content: fullResult,
+            metadata: { references },
+          },
         ]);
 
         // 無料プランの場合、使用回数を増やす
@@ -153,7 +166,7 @@ export async function POST(request: Request) {
         }
 
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
+          encoder.encode(`data: ${JSON.stringify({ done: true, references })}\n\n`)
         );
         controller.close();
       } catch (err) {

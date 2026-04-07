@@ -15,7 +15,7 @@ export function buildCaseStudySystemPrompt(params: CaseStudyPromptParams): strin
     ? "中級レベル。複数の論点が絡み合う"
     : "上級レベル。複雑な利害関係と例外的な状況";
 
-  return `あなたは「StudyEngines」のケーススタディモードにおける**シナリオ設計者**です。
+  return `あなたは「StudyEngines」のPrism Casesモードにおける**シナリオ設計者**です。
 
 ## あなたの役割
 ${examName}の${topicLabel}に関する**リアルなケース（事例）**を提示し、ユーザーに判断を迫る。

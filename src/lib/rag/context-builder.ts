@@ -1,5 +1,63 @@
 import { searchDocuments, searchUserDocuments, type SearchResult } from "./embeddings";
 
+export interface RAGReference {
+  key: string;
+  source: "official" | "user";
+  subject: string;
+  topic: string | null;
+  title: string | null;
+  similarity: number;
+  excerpt: string;
+  materialId: string | null;
+}
+
+function buildReferenceKey(result: SearchResult): string {
+  const source = result.metadata?.source === "user" ? "user" : "official";
+  const materialId =
+    typeof result.metadata?.materialId === "string" ? result.metadata.materialId : null;
+
+  if (source === "user" && materialId) {
+    return `user:${materialId}`;
+  }
+
+  const title =
+    typeof result.metadata?.title === "string" ? result.metadata.title : result.topic || result.subject;
+  return `${source}:${result.subject}:${result.topic || ""}:${title}`;
+}
+
+function buildReferenceExcerpt(content: string): string {
+  const compact = content.replace(/\s+/g, " ").trim();
+  return compact.length > 110 ? `${compact.slice(0, 109).trim()}…` : compact;
+}
+
+export function buildRAGReferences(results: SearchResult[], limit: number = 5): RAGReference[] {
+  const byKey = new Map<string, RAGReference>();
+
+  for (const result of results) {
+    const key = buildReferenceKey(result);
+    const candidate: RAGReference = {
+      key,
+      source: result.metadata?.source === "user" ? "user" : "official",
+      subject: result.subject,
+      topic: result.topic || null,
+      title: typeof result.metadata?.title === "string" ? result.metadata.title : null,
+      similarity: result.similarity,
+      excerpt: buildReferenceExcerpt(result.content),
+      materialId:
+        typeof result.metadata?.materialId === "string" ? result.metadata.materialId : null,
+    };
+
+    const existing = byKey.get(key);
+    if (!existing || candidate.similarity > existing.similarity) {
+      byKey.set(key, candidate);
+    }
+  }
+
+  return Array.from(byKey.values())
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit);
+}
+
 /**
  * RAG検索結果をプロンプトに注入可能な形式に整形
  */
@@ -23,6 +81,16 @@ export async function buildTutorRAGContext(params: {
   subject?: string;
   userId?: string;
 }): Promise<string> {
+  const bundle = await buildTutorRAGBundle(params);
+  return bundle.context;
+}
+
+export async function buildTutorRAGBundle(params: {
+  query: string;
+  examId: string;
+  subject?: string;
+  userId?: string;
+}): Promise<{ context: string; references: RAGReference[] }> {
   try {
     const searches = [
       searchDocuments({
@@ -48,12 +116,15 @@ export async function buildTutorRAGContext(params: {
     }
 
     const allResults = (await Promise.all(searches)).flat();
-    // 関連度順にソートして上位8件
     allResults.sort((a, b) => b.similarity - a.similarity);
-    return formatRAGContext(allResults.slice(0, 8));
+    const topResults = allResults.slice(0, 8);
+    return {
+      context: formatRAGContext(topResults),
+      references: buildRAGReferences(topResults, 5),
+    };
   } catch (error) {
     console.error("RAG context build failed:", error);
-    return "";
+    return { context: "", references: [] };
   }
 }
 

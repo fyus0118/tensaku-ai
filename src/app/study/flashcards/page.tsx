@@ -125,7 +125,7 @@ function FlashcardsContent() {
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-[var(--color-accent)]" />
               <h1 className="text-lg font-bold">
-                暗記カード
+                Flashcards
                 {exam && <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">{exam.shortName}</span>}
               </h1>
             </div>
@@ -151,9 +151,9 @@ function FlashcardsContent() {
               <Brain className="w-10 h-10 text-[var(--color-accent)]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold mb-2">暗記カードを生成</h2>
+              <h2 className="text-xl font-bold mb-2">Flashcardsを生成</h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
-                AIが試験に出る重要知識を暗記カードにします。
+                AIが試験に出る重要知識をFlashcardsにします。
                 <br />
                 SM-2アルゴリズムで最適なタイミングで復習できます。
               </p>

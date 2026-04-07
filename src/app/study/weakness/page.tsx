@@ -167,7 +167,7 @@ function WeaknessContent() {
           <Link href="/dashboard" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"><ArrowLeft className="w-5 h-5" /></Link>
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-orange-400" />
-            <h1 className="text-lg font-bold">弱点ドリル</h1>
+            <h1 className="text-lg font-bold">Weakness Drill</h1>
           </div>
         </div>
       </header>
@@ -179,11 +179,11 @@ function WeaknessContent() {
           <>
             <h2 className="text-xl font-bold mb-2">弱点データがありません</h2>
             <p className="text-sm text-[var(--color-text-secondary)] mb-6">
-              まず練習問題を解いて弱点を蓄積しましょう。
+              まずPracticeを解いて弱点を蓄積しましょう。
             </p>
             <Link href={`/study/practice?exam=${examId}`}
               className="inline-block py-3 px-8 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors">
-              練習問題を解く
+              Practiceを解く
             </Link>
           </>
         ) : (
@@ -220,7 +220,7 @@ function WeaknessContent() {
             <Link href="/dashboard" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"><ArrowLeft className="w-5 h-5" /></Link>
             <div className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-orange-400" />
-              <h1 className="text-lg font-bold">弱点ドリル
+              <h1 className="text-lg font-bold">Weakness Drill
                 <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">{exam.shortName}</span>
               </h1>
             </div>

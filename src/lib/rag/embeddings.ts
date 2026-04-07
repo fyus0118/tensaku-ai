@@ -133,7 +133,11 @@ export async function searchDocuments(params: {
     subject: row.subject,
     topic: row.topic,
     similarity: row.similarity,
-    metadata: row.metadata,
+    metadata: {
+      ...row.metadata,
+      source: "official",
+      title: typeof row.metadata?.title === "string" ? row.metadata.title : null,
+    },
   }));
 }
 
@@ -176,7 +180,13 @@ export async function searchUserDocuments(params: {
     subject: row.subject,
     topic: row.topic,
     similarity: row.similarity,
-    metadata: { ...row.metadata, title: row.title, source: "user" },
+    metadata: {
+      ...row.metadata,
+      title: row.title,
+      materialId:
+        typeof row.metadata?.materialId === "string" ? row.metadata.materialId : null,
+      source: "user",
+    },
   }));
 }
 

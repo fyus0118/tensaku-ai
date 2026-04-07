@@ -9,11 +9,11 @@ export const metadata: Metadata = {
     template: "%s | StudyEngines",
   },
   description:
-    "学びながら自分専用AIを育てる。3層AI（Mentor/Prism/Core）が教え、検証し、あなただけの知識を蓄積。48試験対応。予備校の1/10以下。",
+    "学びながら自分専用AIを育てる。Mentor・Prism・Coreが教え、検証し、あなただけの知識を蓄積。48試験対応。予備校の1/10以下。",
   openGraph: {
     title: "StudyEngines | 学びながら、自分専用AIを育てる",
     description:
-      "3層AI構造で「わかったつもり」を破壊する。教えるAI、検証するAI、あなたの知識の分身AI。48試験対応。",
+      "「わかったつもり」を破壊する。教えるAI、検証するAI、あなたの知識の分身AI。48試験対応。",
     type: "website",
     siteName: "StudyEngines",
   },
@@ -26,9 +26,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
   viewportFit: "cover",
-  themeColor: "#0a0a0a",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({

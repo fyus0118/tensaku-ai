@@ -208,7 +208,7 @@ function CoreContent() {
             <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-[var(--color-accent)]" />
               <h1 className="text-lg font-bold">
-                あなたのCore
+                Core
                 <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">{exam.name}</span>
               </h1>
             </div>
@@ -264,7 +264,7 @@ function CoreContent() {
                 )}
 
                 <p className="text-center text-xs text-[var(--color-text-muted)] mt-10">
-                  Coreの穴 = あなたの知識の穴。未学習のトピックから教えてマスターで埋めていきましょう。
+                  Coreの穴 = あなたの知識の穴。未学習のトピックからPrism Teachで埋めていきましょう。
                 </p>
               </>
             )}
@@ -370,12 +370,12 @@ function EmptyCore({ examId }: { examId: string }) {
       </div>
       <h2 className="text-xl font-bold mb-2">Coreはまだ空です</h2>
       <p className="text-sm text-[var(--color-text-secondary)] mb-6 max-w-md mx-auto">
-        教えてマスターで知識を教えると、検証済みの知識がCoreに蓄積されます。
+        Prism Teachで知識を教えると、検証済みの知識がCoreに蓄積されます。
         Coreはあなたの知識の分身 — あなたが教えたことだけを知っています。
       </p>
       <Link href={`/study/teach?exam=${examId}`}
         className="inline-block py-3 px-8 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors">
-        教えてマスターを始める
+        Prism Teachを始める
       </Link>
     </div>
   );

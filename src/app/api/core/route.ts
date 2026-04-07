@@ -257,7 +257,7 @@ export async function POST(request: Request) {
 
   if (knowledge.length === 0) {
     return Response.json({
-      answer: "まだ何も学んでいません。教えてマスターで知識を教えてください。Coreはあなたが教えたことだけを知っています。",
+      answer: "まだ何も学んでいません。Prism Teachで知識を教えてください。Coreはあなたが教えたことだけを知っています。",
       fromCore: false,
     });
   }
@@ -285,7 +285,7 @@ export async function POST(request: Request) {
 1. 以下の「あなたの知識」に含まれる情報**だけ**で回答する
 2. 知識にないことは「まだ教わっていません」と正直に答える
 3. 推測・補完・外部知識の混入は**絶対禁止**
-4. 知識が足りない場合は「この部分は教えてマスターで教えてもらえると嬉しいです」と促す
+4. 知識が足りない場合は「この部分はPrism Teachで教えてもらえると嬉しいです」と促す
 5. 確信度が低い知識（50%未満）は「ここは自信がありません」と正直に言う
 
 ## あなたの知識
