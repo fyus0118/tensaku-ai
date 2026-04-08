@@ -20,7 +20,7 @@
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: "Inter", "Noto Sans JP", system-ui, sans-serif;
+  font-family: var(--font-inter), var(--font-noto), system-ui, sans-serif;
 }
 
 @keyframes fade-in {

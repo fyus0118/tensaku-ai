@@ -23,20 +23,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getPostBySlug(slug);
   if (!post) return { title: "記事が見つかりません" };
 
+  const url = `https://studyengines.com/blog/${slug}`;
   return {
     title: post.title,
     description: post.description,
     keywords: post.keywords,
+    alternates: { canonical: url },
     openGraph: {
       title: post.title,
       description: post.description,
       type: "article",
       publishedTime: post.date,
+      url,
+      images: [`/api/og?title=${encodeURIComponent(post.title)}`],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.description,
+      images: [`/api/og?title=${encodeURIComponent(post.title)}`],
     },
   };
 }
@@ -58,15 +63,27 @@ export default async function BlogPostPage({ params }: Props) {
   // 目次用の見出し抽出
   const headings = extractHeadings(post.content);
 
+  const articleUrl = `https://studyengines.com/blog/${slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
     description: post.description,
     datePublished: post.date,
+    dateModified: post.date,
+    url: articleUrl,
+    mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
+    image: `https://studyengines.com/api/og?title=${encodeURIComponent(post.title)}`,
     author: { "@type": "Organization", name: "StudyEngines", url: "https://studyengines.com" },
-    publisher: { "@type": "Organization", name: "StudyEngines" },
+    publisher: {
+      "@type": "Organization",
+      name: "StudyEngines",
+      url: "https://studyengines.com",
+      logo: { "@type": "ImageObject", url: "https://studyengines.com/icon-192.png" },
+    },
     keywords: post.keywords.join(", "),
+    wordCount: post.content.length,
+    inLanguage: "ja",
   };
 
   const shareUrl = `https://studyengines.com/blog/${slug}`;

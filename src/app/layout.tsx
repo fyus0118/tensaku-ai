@@ -1,7 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Noto_Sans_JP } from "next/font/google";
 import { NativeInit } from "@/components/NativeInit";
 import { AuthListener } from "@/components/AuthListener";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-noto",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -21,6 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://studyengines.com"),
+  alternates: { canonical: "https://studyengines.com" },
 };
 
 export const viewport: Viewport = {
@@ -37,8 +51,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+    <html lang="ja" className={`h-full antialiased ${inter.variable} ${notoSansJP.variable}`}>
+      <body className="min-h-full flex flex-col font-sans">
         <NativeInit />
         <AuthListener />
         {children}
