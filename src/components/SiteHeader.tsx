@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -22,25 +21,13 @@ export function SiteHeader() {
       }`}
     >
       <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
-        <Link href="/" className="text-xl font-black">
+        <Link href="/blog" className="text-xl font-black">
           Study<span className="text-[var(--color-accent)]">Engines</span>
         </Link>
         <nav
           className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm text-[var(--color-text-secondary)]"
-          aria-label="ページ内リンク"
+          aria-label="ナビゲーション"
         >
-          <a
-            href="/#features"
-            className="hover:text-[var(--color-text)] transition-colors whitespace-nowrap rounded-md px-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-          >
-            機能
-          </a>
-          <a
-            href="/#pricing"
-            className="hover:text-[var(--color-text)] transition-colors whitespace-nowrap rounded-md px-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
-          >
-            料金
-          </a>
           <Link
             href="/blog"
             className="hover:text-[var(--color-text)] transition-colors whitespace-nowrap rounded-md px-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
@@ -48,13 +35,6 @@ export function SiteHeader() {
             ブログ
           </Link>
         </nav>
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-xs sm:text-sm font-bold transition-colors shrink-0"
-        >
-          無料で始める
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
       </div>
     </header>
   );
