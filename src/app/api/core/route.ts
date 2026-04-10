@@ -14,6 +14,7 @@ import {
   calcRetention,
   getOperationLevel,
   detectChunkingOpportunities,
+  buildReviewSchedule,
   type CoreKnowledgeRow,
   type ScoredKnowledge,
 } from "@/lib/core-engine";
@@ -275,6 +276,22 @@ export async function GET(request: Request) {
     entryIds: c.entries.map(e => e.id),
   }));
 
+  // 復習スケジュール生成
+  const reviewSchedule = buildReviewSchedule(knowledgeEntries, knowledgeEntries)
+    .slice(0, 15)
+    .map(r => ({
+      id: r.id,
+      subject: r.subject,
+      topic: r.topic,
+      content: r.content,
+      currentRetention: Math.round(r.currentRetention * 100),
+      retentionStatus: r.retentionStatus,
+      effectiveConfidence: Math.round(r.effectiveConfidence * 100),
+      reviewAt: r.reviewAt.toISOString(),
+      overdueDays: Math.round(r.overdueDays * 10) / 10,
+      priority: Math.round(r.priority * 10) / 10,
+    }));
+
   // 最近のCore蓄積（タイムライン用）
   const recentEntries = knowledgeEntries.slice(0, 20).map(e => ({
     subject: e.subject,
@@ -305,6 +322,7 @@ export async function GET(request: Request) {
       },
       recentEntries,
       needsReview,
+      reviewSchedule,
       chunkOpportunities,
       chunks: knowledgeChunks,
     },
@@ -407,7 +425,7 @@ export async function POST(request: Request) {
     const newStability = updateStability(entry.stability, true, daysSince);
     const newContexts = [
       ...(entry.retrieval_contexts || []),
-      { context: question.slice(0, 200), at: now },
+      { context: question.slice(0, 200), at: now, embedding: queryEmbedding },
     ].slice(-20);
 
     supabase.from("core_knowledge").update({

@@ -94,6 +94,19 @@ interface RecentEntry {
   createdAt: string;
 }
 
+interface ReviewScheduleEntry {
+  id: string;
+  subject: string;
+  topic: string | null;
+  content: string;
+  currentRetention: number;
+  retentionStatus: string;
+  effectiveConfidence: number;
+  reviewAt: string;
+  overdueDays: number;
+  priority: number;
+}
+
 interface CoreStats {
   totalEntries: number;
   totalCoverage: number;
@@ -101,6 +114,7 @@ interface CoreStats {
   diagnostics: DiagnosticsStat;
   recentEntries: RecentEntry[];
   needsReview: NeedsReviewEntry[];
+  reviewSchedule: ReviewScheduleEntry[];
   chunkOpportunities: ChunkOpportunity[];
 }
 
@@ -351,9 +365,9 @@ function CoreContent() {
                 {/* 全体サマリー */}
                 <OverviewSection stats={stats} />
 
-                {/* 復習推奨 */}
-                {stats.needsReview && stats.needsReview.length > 0 && (
-                  <NeedsReviewSection entries={stats.needsReview} examId={examId} />
+                {/* 復習スケジュール */}
+                {stats.reviewSchedule && stats.reviewSchedule.length > 0 && (
+                  <ReviewScheduleSection entries={stats.reviewSchedule} examId={examId} />
                 )}
 
                 {/* 診断サマリー */}
@@ -764,33 +778,63 @@ function SubjectCard({ stat, examId }: { stat: SubjectStat; examId: string }) {
   );
 }
 
-function NeedsReviewSection({ entries, examId }: { entries: NeedsReviewEntry[]; examId: string }) {
+function formatReviewTiming(overdueDays: number, reviewAt: string): { text: string; urgent: boolean } {
+  if (overdueDays > 0) {
+    if (overdueDays < 1) return { text: `${Math.round(overdueDays * 24)}時間オーバー`, urgent: true };
+    return { text: `${Math.round(overdueDays)}日オーバー`, urgent: true };
+  }
+  const daysUntil = -overdueDays;
+  if (daysUntil < 1) return { text: `あと${Math.round(daysUntil * 24)}時間`, urgent: false };
+  if (daysUntil < 7) return { text: `あと${Math.round(daysUntil)}日`, urgent: false };
+  return { text: `${new Date(reviewAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}`, urgent: false };
+}
+
+function ReviewScheduleSection({ entries, examId }: { entries: ReviewScheduleEntry[]; examId: string }) {
+  const overdue = entries.filter(e => e.overdueDays > 0);
+  const upcoming = entries.filter(e => e.overdueDays <= 0);
+
   return (
     <div className="p-4 rounded-xl bg-orange-50 border border-orange-200 mb-6">
       <div className="flex items-center gap-2 mb-3">
-        <Zap className="w-4 h-4 text-orange-600" />
-        <h3 className="text-sm font-bold text-orange-800">復習推奨</h3>
-        <span className="text-[10px] text-orange-600">{entries.length}件の知識が劣化しています</span>
+        <Clock className="w-4 h-4 text-orange-600" />
+        <h3 className="text-sm font-bold text-orange-800">復習スケジュール</h3>
+        {overdue.length > 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold">
+            {overdue.length}件が期限超過
+          </span>
+        )}
       </div>
       <div className="space-y-1.5">
-        {entries.map(entry => (
-          <Link key={entry.id} href={`/study/teach?exam=${examId}${entry.topic ? `&topic=${encodeURIComponent(entry.topic)}` : ""}`}
-            className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-orange-100 transition-colors group">
-            <div className={`w-2 h-2 rounded-full shrink-0 ${retentionBg(entry.retentionStatus)}`} />
-            <div className="flex-1 min-w-0">
-              <span className="text-xs font-medium truncate">{entry.subject}{entry.topic ? ` > ${entry.topic}` : ""}</span>
-              <div className="flex items-center gap-2 text-[9px] text-orange-600 mt-0.5">
-                <span>保存時{entry.storedConfidence}%</span>
-                <span>→</span>
-                <span className="font-bold">実効{entry.effectiveConfidence}%</span>
-                <span className={retentionColor(entry.retentionStatus)}>
-                  {retentionLabel(entry.retentionStatus)}
+        {entries.map(entry => {
+          const timing = formatReviewTiming(entry.overdueDays, entry.reviewAt);
+          return (
+            <Link key={entry.id} href={`/study/teach?exam=${examId}${entry.topic ? `&topic=${encodeURIComponent(entry.topic)}` : ""}`}
+              className={`flex items-center gap-3 py-1.5 px-2 rounded-lg transition-colors group ${
+                timing.urgent ? "hover:bg-red-100 bg-red-50/50" : "hover:bg-orange-100"
+              }`}>
+              <div className={`w-2 h-2 rounded-full shrink-0 ${retentionBg(entry.retentionStatus)}`} />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-medium truncate">{entry.subject}{entry.topic ? ` > ${entry.topic}` : ""}</span>
+                <div className="flex items-center gap-2 text-[9px] mt-0.5">
+                  <span className={retentionColor(entry.retentionStatus)}>
+                    記憶{entry.currentRetention}%
+                  </span>
+                  <span className="text-[var(--color-text-muted)]">
+                    実効{entry.effectiveConfidence}%
+                  </span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className={`text-[9px] font-bold ${timing.urgent ? "text-red-600" : "text-orange-500"}`}>
+                  {timing.text}
                 </span>
               </div>
-            </div>
-            <span className="text-[9px] text-orange-500 group-hover:text-orange-700">復習 →</span>
-          </Link>
-        ))}
+              <span className={`text-[9px] shrink-0 ${timing.urgent ? "text-red-500 group-hover:text-red-700" : "text-orange-500 group-hover:text-orange-700"}`}>
+                復習 →
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

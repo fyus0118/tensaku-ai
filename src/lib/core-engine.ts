@@ -139,6 +139,78 @@ export function getRetentionStatus(retention: number): "fresh" | "fading" | "sta
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 2a-b. 最適復習タイミング計算
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * retention が targetRetention (デフォルト0.7) まで落ちる日時を計算する。
+ * retention = e^(-t/stability) なので t = -stability * ln(targetRetention)
+ */
+export function calcOptimalReviewDate(
+  lastReinforcedAt: string | null,
+  stability: number,
+  targetRetention: number = 0.7
+): Date | null {
+  if (!lastReinforcedAt) return null;
+  const daysUntilTarget = -stability * Math.log(targetRetention);
+  const reviewAt = new Date(new Date(lastReinforcedAt).getTime() + daysUntilTarget * 24 * 60 * 60 * 1000);
+  return reviewAt;
+}
+
+export interface ReviewScheduleEntry {
+  id: string;
+  subject: string;
+  topic: string | null;
+  content: string;
+  currentRetention: number;
+  retentionStatus: string;
+  effectiveConfidence: number;
+  reviewAt: Date;
+  overdueDays: number;
+  priority: number;
+}
+
+/**
+ * 復習スケジュールを生成する。
+ * overdueDays > 0 なら既に復習すべき時期を過ぎている。
+ * priorityが高いほど緊急。
+ */
+export function buildReviewSchedule(
+  entries: CoreKnowledgeRow[],
+  allEntries: CoreKnowledgeRow[],
+): ReviewScheduleEntry[] {
+  const now = Date.now();
+
+  return entries
+    .map(entry => {
+      const lastReinforced = laterDate(entry.last_taught_at, entry.last_retrieved_at);
+      const retention = calcRetention(lastReinforced, entry.stability);
+      const ec = calcEffectiveConfidence(entry, allEntries);
+      const reviewDate = calcOptimalReviewDate(lastReinforced, entry.stability);
+      if (!reviewDate) return null;
+
+      const overdueDays = (now - reviewDate.getTime()) / (1000 * 60 * 60 * 24);
+      // priority: overdue + low effective confidence = highest priority
+      const priority = Math.max(0, overdueDays) * 2 + (1 - ec) * 3;
+
+      return {
+        id: entry.id,
+        subject: entry.subject,
+        topic: entry.topic,
+        content: entry.content.slice(0, 100),
+        currentRetention: retention,
+        retentionStatus: getRetentionStatus(retention),
+        effectiveConfidence: ec,
+        reviewAt: reviewDate,
+        overdueDays,
+        priority,
+      };
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null)
+    .sort((a, b) => b.priority - a.priority) as ReviewScheduleEntry[];
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 2q. 困難度付きstability更新
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -748,7 +820,25 @@ export async function executeChunking(
   examId: string,
   candidate: ChunkCandidate,
 ): Promise<{ chunkId: string } | null> {
-  const memberIds = candidate.entries.map(e => e.id);
+  const memberIds = candidate.entries.map(e => e.id).sort();
+
+  // 重複チェック: 同じメンバーを含む既存チャンクがあればスキップ
+  const { data: existingChunks } = await supabase.from("knowledge_chunks")
+    .select("id, member_ids")
+    .eq("user_id", userId)
+    .eq("exam_id", examId)
+    .eq("subject", candidate.subject);
+
+  if (existingChunks) {
+    for (const chunk of existingChunks) {
+      const existingIds = (chunk.member_ids as string[]).sort();
+      // 既存チャンクと70%以上メンバーが重複していたらスキップ
+      const overlap = memberIds.filter(id => existingIds.includes(id)).length;
+      const overlapRate = overlap / Math.max(memberIds.length, existingIds.length);
+      if (overlapRate >= 0.7) return null;
+    }
+  }
+
   const synthesisContent = candidate.entries
     .map(e => `[${e.topic || e.subject}] ${e.content.slice(0, 200)}`)
     .join("\n");
