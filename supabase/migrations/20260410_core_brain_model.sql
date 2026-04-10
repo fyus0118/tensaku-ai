@@ -3,6 +3,9 @@
 
 SET search_path TO public, extensions;
 
+-- 0. 既存関数をDROP（戻り値型の変更のため）
+DROP FUNCTION IF EXISTS match_core_knowledge(vector, uuid, text, integer, double precision);
+
 -- 1. core_knowledge に新カラム追加
 ALTER TABLE core_knowledge ADD COLUMN IF NOT EXISTS stability float DEFAULT 3.0;
 ALTER TABLE core_knowledge ADD COLUMN IF NOT EXISTS retrieval_count int DEFAULT 0;
@@ -39,21 +42,20 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding ON knowledge_chunks
 -- 3. RLSポリシー for knowledge_chunks
 ALTER TABLE knowledge_chunks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read own chunks"
-  ON knowledge_chunks FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own chunks"
-  ON knowledge_chunks FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own chunks"
-  ON knowledge_chunks FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own chunks"
-  ON knowledge_chunks FOR DELETE
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'knowledge_chunks' AND policyname = 'Users can read own chunks') THEN
+    CREATE POLICY "Users can read own chunks" ON knowledge_chunks FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'knowledge_chunks' AND policyname = 'Users can insert own chunks') THEN
+    CREATE POLICY "Users can insert own chunks" ON knowledge_chunks FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'knowledge_chunks' AND policyname = 'Users can update own chunks') THEN
+    CREATE POLICY "Users can update own chunks" ON knowledge_chunks FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'knowledge_chunks' AND policyname = 'Users can delete own chunks') THEN
+    CREATE POLICY "Users can delete own chunks" ON knowledge_chunks FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- 4. match_core_knowledge RPCを更新（新カラムを返す）
 CREATE OR REPLACE FUNCTION match_core_knowledge(

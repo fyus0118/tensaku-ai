@@ -8,7 +8,9 @@ import remarkGfm from "remark-gfm";
 import {
   ArrowLeft, Send, Loader2, Brain, MessageCircle, Map,
   ChevronDown, ChevronRight, AlertCircle, CheckCircle2,
-  RefreshCw, TrendingUp, Clock, Target,
+  RefreshCw, TrendingUp, Clock, Target, ShieldCheck,
+  ShieldAlert, ShieldQuestion, Layers, Activity, Zap,
+  BookOpen,
 } from "lucide-react";
 import { getExamById } from "@/lib/exams";
 
@@ -19,11 +21,16 @@ interface TopicDetail {
   entries: number;
   maxDepth: number;
   avgConfidence: number;
+  avgEffectiveConfidence: number;
   sources: { correct: number; verified: number };
   connections: string[];
   lastTaught: string;
   teachCount: number;
   hasMistakes: boolean;
+  retentionStatus: string;
+  needsReview: boolean;
+  operationLevel: string;
+  ragStatus: string;
 }
 
 interface SubjectStat {
@@ -33,9 +40,18 @@ interface SubjectStat {
   coverage: number;
   avgDepth: number;
   avgConfidence: number;
+  avgEffectiveConfidence: number;
   entries: number;
   topics: TopicDetail[];
   gaps: string[];
+  consistencyScore: {
+    overall: number;
+    prerequisitesFilled: number;
+    contradictionFree: number;
+    connectionDensity: number;
+    chunkRate: number;
+    operationBreadth: number;
+  };
 }
 
 interface DiagnosticsStat {
@@ -47,6 +63,23 @@ interface DiagnosticsStat {
   maxLevelReached: number;
 }
 
+interface NeedsReviewEntry {
+  id: string;
+  subject: string;
+  topic: string | null;
+  storedConfidence: number;
+  effectiveConfidence: number;
+  retentionStatus: string;
+  lastTaught: string | null;
+}
+
+interface ChunkOpportunity {
+  subject: string;
+  suggestedLabel: string;
+  entryCount: number;
+  entryIds: string[];
+}
+
 interface RecentEntry {
   subject: string;
   topic: string | null;
@@ -54,6 +87,9 @@ interface RecentEntry {
   source: string;
   depth: number;
   confidence: number;
+  effectiveConfidence: number;
+  retentionStatus: string;
+  operationLevel: string;
   hasMistake: boolean;
   createdAt: string;
 }
@@ -64,6 +100,8 @@ interface CoreStats {
   subjects: SubjectStat[];
   diagnostics: DiagnosticsStat;
   recentEntries: RecentEntry[];
+  needsReview: NeedsReviewEntry[];
+  chunkOpportunities: ChunkOpportunity[];
 }
 
 interface ChatMessage { role: "user" | "assistant"; content: string }
@@ -89,6 +127,74 @@ function confidenceLabel(c: number): string {
   if (c >= 0.7) return "理解";
   if (c >= 0.5) return "曖昧";
   return "不安";
+}
+
+function retentionColor(status: string): string {
+  switch (status) {
+    case "fresh": return "text-emerald-600";
+    case "fading": return "text-amber-500";
+    case "stale": return "text-orange-500";
+    case "forgotten": return "text-red-500";
+    default: return "text-gray-400";
+  }
+}
+
+function retentionBg(status: string): string {
+  switch (status) {
+    case "fresh": return "bg-emerald-500";
+    case "fading": return "bg-amber-400";
+    case "stale": return "bg-orange-500";
+    case "forgotten": return "bg-red-500";
+    default: return "bg-gray-300";
+  }
+}
+
+function retentionLabel(status: string): string {
+  switch (status) {
+    case "fresh": return "定着";
+    case "fading": return "薄れ中";
+    case "stale": return "要復習";
+    case "forgotten": return "忘却";
+    default: return "";
+  }
+}
+
+function retentionWidth(status: string): string {
+  switch (status) {
+    case "fresh": return "100%";
+    case "fading": return "60%";
+    case "stale": return "30%";
+    case "forgotten": return "10%";
+    default: return "0%";
+  }
+}
+
+const operationLabels: Record<string, string> = {
+  none: "",
+  recognized: "認識",
+  reproduced: "再生",
+  explained: "説明",
+  applied: "応用",
+  integrated: "統合",
+};
+
+function operationBadgeColor(level: string): string {
+  switch (level) {
+    case "integrated": return "bg-purple-100 text-purple-700";
+    case "applied": return "bg-blue-100 text-blue-700";
+    case "explained": return "bg-emerald-100 text-emerald-700";
+    case "reproduced": return "bg-amber-100 text-amber-700";
+    case "recognized": return "bg-gray-100 text-gray-600";
+    default: return "";
+  }
+}
+
+function ragBadge(status: string) {
+  switch (status) {
+    case "verified": return { icon: ShieldCheck, className: "text-emerald-600", label: "RAG検証済" };
+    case "contradicted": return { icon: ShieldAlert, className: "text-red-500", label: "RAG矛盾" };
+    default: return { icon: ShieldQuestion, className: "text-gray-400", label: "" };
+  }
 }
 
 function timeAgo(dateStr: string): string {
@@ -245,8 +351,18 @@ function CoreContent() {
                 {/* 全体サマリー */}
                 <OverviewSection stats={stats} />
 
+                {/* 復習推奨 */}
+                {stats.needsReview && stats.needsReview.length > 0 && (
+                  <NeedsReviewSection entries={stats.needsReview} examId={examId} />
+                )}
+
                 {/* 診断サマリー */}
                 <DiagnosticsSection diagnostics={stats.diagnostics} />
+
+                {/* チャンク機会 */}
+                {stats.chunkOpportunities && stats.chunkOpportunities.length > 0 && (
+                  <ChunkSection chunks={stats.chunkOpportunities} />
+                )}
 
                 {/* 科目別マップ */}
                 <div className="mt-8">
@@ -513,18 +629,77 @@ function SubjectCard({ stat, examId }: { stat: SubjectStat; examId: string }) {
       {/* 展開: トピック詳細 */}
       {expanded && (
         <div className="border-t border-[var(--color-border)] px-4 py-3">
+          {/* 一貫性メーター */}
+          {stat.consistencyScore && (
+            <div className="mb-4 p-3 rounded-lg bg-[var(--color-bg-secondary)]/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                <span className="text-[10px] font-bold text-[var(--color-text-secondary)]">知識の一貫性</span>
+                <span className={`text-xs font-bold ml-auto ${
+                  stat.consistencyScore.overall >= 0.7 ? "text-emerald-600" :
+                  stat.consistencyScore.overall >= 0.4 ? "text-amber-600" :
+                  "text-red-500"
+                }`}>{Math.round(stat.consistencyScore.overall * 100)}%</span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { label: "前提充足", value: stat.consistencyScore.prerequisitesFilled },
+                  { label: "矛盾なし", value: stat.consistencyScore.contradictionFree },
+                  { label: "接続密度", value: stat.consistencyScore.connectionDensity },
+                  { label: "統合度", value: stat.consistencyScore.chunkRate },
+                  { label: "運用幅", value: stat.consistencyScore.operationBreadth },
+                ].map(item => (
+                  <div key={item.label} className="text-center">
+                    <div className="w-full h-1.5 rounded-full bg-[var(--color-border)] mb-1">
+                      <div className={`h-full rounded-full ${
+                        item.value >= 0.7 ? "bg-emerald-500" :
+                        item.value >= 0.4 ? "bg-amber-500" :
+                        "bg-red-500"
+                      }`} style={{ width: `${Math.max(item.value * 100, 3)}%` }} />
+                    </div>
+                    <span className="text-[8px] text-[var(--color-text-muted)]">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 学習済みトピック */}
           {stat.topics.length > 0 && (
             <div className="space-y-2 mb-3">
               {stat.topics.map(t => (
-                <div key={t.topic} className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[var(--color-bg-secondary)]/50">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <div key={t.topic} className={`flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[var(--color-bg-secondary)]/50 ${
+                  t.needsReview ? "ring-1 ring-orange-300" : ""
+                }`}>
+                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${
+                    t.retentionStatus === "forgotten" ? "text-red-400" :
+                    t.retentionStatus === "stale" ? "text-orange-400" :
+                    "text-emerald-500"
+                  }`} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-xs font-medium truncate">{t.topic}</span>
+                      {t.needsReview && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 flex items-center gap-0.5">
+                          <Zap className="w-2.5 h-2.5" />要復習
+                        </span>
+                      )}
+                      {t.operationLevel && t.operationLevel !== "none" && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded ${operationBadgeColor(t.operationLevel)}`}>
+                          {operationLabels[t.operationLevel]}
+                        </span>
+                      )}
                       {t.hasMistakes && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">修正済</span>
                       )}
+                      {t.ragStatus !== "unverified" && (() => {
+                        const badge = ragBadge(t.ragStatus);
+                        return (
+                          <span className={`text-[9px] flex items-center gap-0.5 ${badge.className}`}>
+                            <badge.icon className="w-2.5 h-2.5" />{badge.label}
+                          </span>
+                        );
+                      })()}
                       {t.teachCount > 1 && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 flex items-center gap-0.5">
                           <RefreshCw className="w-2.5 h-2.5" />{t.teachCount}回
@@ -534,11 +709,26 @@ function SubjectCard({ stat, examId }: { stat: SubjectStat; examId: string }) {
                     <div className="flex items-center gap-3 text-[9px] text-[var(--color-text-muted)] mt-0.5">
                       <span className={depthColor(t.maxDepth)}>Lv{t.maxDepth} {levelLabels[t.maxDepth] || ""}</span>
                       <span>{confidenceLabel(t.avgConfidence)} ({Math.round(t.avgConfidence * 100)}%)</span>
+                      {t.avgEffectiveConfidence !== undefined && Math.round(t.avgEffectiveConfidence * 100) !== Math.round(t.avgConfidence * 100) && (
+                        <span className={retentionColor(t.retentionStatus)}>
+                          実効{Math.round(t.avgEffectiveConfidence * 100)}%
+                        </span>
+                      )}
                       {t.connections.length > 0 && (
                         <span>{t.connections.length}接続</span>
                       )}
                       <span className="flex items-center gap-0.5">
                         <Clock className="w-2.5 h-2.5" />{timeAgo(t.lastTaught)}
+                      </span>
+                    </div>
+                    {/* 減衰バー */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1 rounded-full bg-[var(--color-border)] overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${retentionBg(t.retentionStatus)}`}
+                          style={{ width: retentionWidth(t.retentionStatus) }} />
+                      </div>
+                      <span className={`text-[8px] ${retentionColor(t.retentionStatus)}`}>
+                        {retentionLabel(t.retentionStatus)}
                       </span>
                     </div>
                   </div>
@@ -574,6 +764,61 @@ function SubjectCard({ stat, examId }: { stat: SubjectStat; examId: string }) {
   );
 }
 
+function NeedsReviewSection({ entries, examId }: { entries: NeedsReviewEntry[]; examId: string }) {
+  return (
+    <div className="p-4 rounded-xl bg-orange-50 border border-orange-200 mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="w-4 h-4 text-orange-600" />
+        <h3 className="text-sm font-bold text-orange-800">復習推奨</h3>
+        <span className="text-[10px] text-orange-600">{entries.length}件の知識が劣化しています</span>
+      </div>
+      <div className="space-y-1.5">
+        {entries.map(entry => (
+          <Link key={entry.id} href={`/study/teach?exam=${examId}${entry.topic ? `&topic=${encodeURIComponent(entry.topic)}` : ""}`}
+            className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-orange-100 transition-colors group">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${retentionBg(entry.retentionStatus)}`} />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-medium truncate">{entry.subject}{entry.topic ? ` > ${entry.topic}` : ""}</span>
+              <div className="flex items-center gap-2 text-[9px] text-orange-600 mt-0.5">
+                <span>保存時{entry.storedConfidence}%</span>
+                <span>→</span>
+                <span className="font-bold">実効{entry.effectiveConfidence}%</span>
+                <span className={retentionColor(entry.retentionStatus)}>
+                  {retentionLabel(entry.retentionStatus)}
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] text-orange-500 group-hover:text-orange-700">復習 →</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChunkSection({ chunks }: { chunks: ChunkOpportunity[] }) {
+  return (
+    <div className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Layers className="w-4 h-4 text-[var(--color-accent)]" />
+        <h3 className="text-sm font-bold">統合チャンス</h3>
+        <span className="text-[10px] text-[var(--color-text-muted)]">関連する知識をまとめて強化できます</span>
+      </div>
+      <div className="space-y-1.5">
+        {chunks.map((chunk, i) => (
+          <div key={i} className="flex items-center gap-3 py-1.5 px-2 rounded-lg bg-[var(--color-bg-secondary)]/50">
+            <BookOpen className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-medium">{chunk.suggestedLabel}</span>
+              <span className="text-[9px] text-[var(--color-text-muted)] ml-2">{chunk.subject} - {chunk.entryCount}件の知識</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TimelineSection({ entries }: { entries: RecentEntry[] }) {
   return (
     <div className="mt-8">
@@ -583,20 +828,31 @@ function TimelineSection({ entries }: { entries: RecentEntry[] }) {
       <div className="space-y-2">
         {entries.map((entry, i) => (
           <div key={i} className="flex items-start gap-3 py-2 px-3 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)]">
-            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-              entry.source === "verified" ? "bg-blue-500" : "bg-emerald-500"
-            }`} />
+            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${retentionBg(entry.retentionStatus)}`} />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
                 <span className="font-medium truncate">{entry.subject}{entry.topic ? ` > ${entry.topic}` : ""}</span>
                 <span className={`text-[9px] px-1.5 py-0.5 rounded ${
                   entry.source === "verified" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
                 }`}>{entry.source === "verified" ? "修正検証" : "正確"}</span>
+                {entry.operationLevel && entry.operationLevel !== "none" && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded ${operationBadgeColor(entry.operationLevel)}`}>
+                    {operationLabels[entry.operationLevel]}
+                  </span>
+                )}
                 {entry.hasMistake && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">間違い修正</span>
                 )}
               </div>
               <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 truncate">{entry.content}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`text-[8px] ${retentionColor(entry.retentionStatus)}`}>
+                  {retentionLabel(entry.retentionStatus)}
+                </span>
+                <span className="text-[8px] text-[var(--color-text-muted)]">
+                  実効{entry.effectiveConfidence}%
+                </span>
+              </div>
             </div>
             <div className="text-[9px] text-[var(--color-text-muted)] shrink-0">
               {timeAgo(entry.createdAt)}
