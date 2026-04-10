@@ -4,10 +4,12 @@ export interface TeachPromptParams {
   topic?: string;
   weakPoints: { subject: string; topic: string; accuracyPct: number }[];
   coreKnowledge?: { topic: string; content: string; understanding_depth: number }[];
+  contradictionContext?: string;
+  probeTargets?: { topic: string; effectiveConfidence: number }[];
 }
 
 export function buildTeachSystemPrompt(params: TeachPromptParams): string {
-  const { examName, subject, topic, weakPoints, coreKnowledge } = params;
+  const { examName, subject, topic, weakPoints, coreKnowledge, contradictionContext, probeTargets } = params;
   const topicLabel = topic ? `${subject}の${topic}` : subject;
 
   const weakAreas = weakPoints.length > 0
@@ -120,6 +122,19 @@ ${existingKnowledge}` : ""}
 - levelは実際に到達した質問レベル（What=1〜Challenge=6）を正確に記録する。
 - connectionsには、この知識と関連する他のトピック名を配列で入れる。
 - ERRORタグのmistakeとreasonは、ユーザーの間違いの原因分析に使われる。
+
+${contradictionContext ? `## 矛盾検出
+ユーザーの説明が、以下の既存Core知識と矛盾していないか確認してください。
+矛盾を検出した場合、修正ループに加えて以下のタグを付与:
+\`<!--CONTRADICTION:{"existing":"既存知識の内容","new":"新しい説明","type":"direct|partial|scope"}-->\`
+
+### 既存Core知識
+${contradictionContext}` : ""}
+
+${probeTargets && probeTargets.length > 0 ? `## 関連知識プローブ
+以下の関連知識が薄れつつあります。会話の流れが自然な場合、「ところで」と確認質問を挟んでください。
+不自然になるなら無理に聞く必要はありません。
+${probeTargets.map(t => `- ${t.topic}（実効確信度${t.effectiveConfidence}%）`).join("\n")}` : ""}
 
 ## セッション開始
 最初のメッセージで「先輩、${topicLabel}について教えてください！」と切り出す。

@@ -6,6 +6,7 @@ import { buildPracticeRAGContext } from "@/lib/rag/context-builder";
 import { getWeakPoints, getRecommendedDifficulty, updateStreak } from "@/lib/adaptive-engine";
 import { practicePostSchema, practicePutSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { feedbackFromPractice } from "@/lib/core-engine";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -181,6 +182,14 @@ export async function PUT(request: Request) {
 
   // ストリーク更新
   await updateStreak(supabase, user.id, 1, isCorrect ? 1 : 0);
+
+  // Core Brain Model: 練習問題の結果をCoreにフィードバック
+  if (topic) {
+    feedbackFromPractice(
+      supabase, user.id, examId, subject, topic,
+      isCorrect, difficulty || 3, "practice"
+    ).catch(err => console.error("core feedback error:", err));
+  }
 
   return Response.json({ ok: true });
 }

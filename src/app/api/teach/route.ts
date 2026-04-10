@@ -6,6 +6,18 @@ import { getWeakPoints } from "@/lib/adaptive-engine";
 import { teachPostSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { embedQuery } from "@/lib/rag/embeddings";
+import {
+  calculateBaseConfidence,
+  updateStability,
+  calcRetroactiveInterference,
+  detectContradictions,
+  detectAbstractionUpgrade,
+  verifyAgainstRAG,
+  selectRelatedProbeTargets,
+  calcEffectiveConfidence,
+  type CoreKnowledgeRow,
+  type OperationEvidence,
+} from "@/lib/core-engine";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -106,13 +118,10 @@ function parseHiddenTags(fullResult: string) {
   return { correct, verified, caught, missed, errors, maxLevel };
 }
 
-// confidence計算: ソースと到達レベルに基づく
-function calculateConfidence(source: "correct" | "verified", level: number): number {
-  // 修正ループを経た知識は、自力修正できた分やや高い
-  const baseConfidence = source === "verified" ? 0.85 : 0.75;
-  // レベルが高いほどconfidenceが上がる (Lv1=+0, Lv6=+0.15)
-  const levelBonus = (level - 1) * 0.03;
-  return Math.min(1.0, baseConfidence + levelBonus);
+// daysSince utility
+function daysSince(dateStr: string | null): number {
+  if (!dateStr) return Infinity;
+  return (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24);
 }
 
 export async function POST(request: Request) {
@@ -162,15 +171,31 @@ export async function POST(request: Request) {
   // ユーザーの弱点を取得
   const weakPoints = await getWeakPoints(supabase, user.id, examId, 10);
 
-  // ユーザーの既存Core知識を取得（同じトピック）
+  // ユーザーの既存Core知識を取得（同じ科目の全知識 - Brain Model用）
   const { data: existingCore } = await supabase
     .from("core_knowledge")
-    .select("topic, content, understanding_depth")
+    .select("*")
     .eq("user_id", user.id)
     .eq("exam_id", examId)
     .eq("subject", subject)
     .order("understanding_depth", { ascending: false })
-    .limit(10);
+    .limit(100);
+
+  // Brain Model: 既存Core知識から矛盾検出用コンテキストとプローブ対象を準備
+  const allExistingForPrompt = (existingCore || []) as CoreKnowledgeRow[];
+  const contradictionContext = allExistingForPrompt.length > 0
+    ? allExistingForPrompt.slice(0, 10).map(e =>
+      `- ${e.topic}: ${e.content.slice(0, 150)}`
+    ).join("\n")
+    : undefined;
+
+  const probeTargetsForPrompt = selectRelatedProbeTargets(
+    allExistingForPrompt.flatMap(e => e.connections || []),
+    allExistingForPrompt
+  ).map(t => ({
+    topic: t.topic || "",
+    effectiveConfidence: Math.round(calcEffectiveConfidence(t) * 100),
+  }));
 
   const systemPrompt = buildTeachSystemPrompt({
     examName: exam.name,
@@ -178,6 +203,8 @@ export async function POST(request: Request) {
     topic,
     weakPoints,
     coreKnowledge: existingCore || undefined,
+    contradictionContext,
+    probeTargets: probeTargetsForPrompt.length > 0 ? probeTargetsForPrompt : undefined,
   });
 
   // 会話履歴を構築
@@ -238,12 +265,17 @@ export async function POST(request: Request) {
           { user_id: user.id, exam_id: examId, subject, role: "assistant", content: cleanResult },
         ]);
 
-        // Core蓄積: CORRECT + VERIFIEDのみ
+        // Core蓄積: CORRECT + VERIFIEDのみ (Brain Model)
         const coreEntries = [...diagnostics.correct, ...diagnostics.verified];
+        const allExisting = (existingCore || []) as CoreKnowledgeRow[];
+        let probeTargets: CoreKnowledgeRow[] = [];
+        let abstractionUpgrade = null;
 
         if (coreEntries.length > 0) {
           try {
             for (const entry of coreEntries) {
+              const now = new Date().toISOString();
+
               // embedding生成
               let embedding: number[] | null = null;
               try {
@@ -252,12 +284,22 @@ export async function POST(request: Request) {
                 console.error("embedding generation error:", err);
               }
 
-              const confidence = calculateConfidence(entry.source, entry.level);
+              // mistake_embedding生成 (VERIFIED = 過去に間違えた → 誤解のベクトルを保存)
+              let mistakeEmbedding: number[] | null = null;
+              if (entry.source === "verified" && entry.mistake) {
+                try {
+                  mistakeEmbedding = await embedQuery(entry.mistake);
+                } catch (err) {
+                  console.error("mistake embedding error:", err);
+                }
+              }
+
+              const confidence = calculateBaseConfidence(entry.source, entry.level);
 
               // 同じトピックの既存知識を探す（UPSERT）
               const { data: existing } = await supabase
                 .from("core_knowledge")
-                .select("id, teach_count, understanding_depth, confidence")
+                .select("id, teach_count, understanding_depth, confidence, stability, last_taught_at, operation_evidence, retrieval_contexts")
                 .eq("user_id", user.id)
                 .eq("exam_id", examId)
                 .eq("subject", subject)
@@ -266,24 +308,50 @@ export async function POST(request: Request) {
                 .limit(1)
                 .single();
 
+              // operation_evidence更新
+              const opEvidence: OperationEvidence = existing?.operation_evidence || {
+                recognized: false, reproduced: false, explained: false, applied: false, integrated: false,
+              };
+              opEvidence.explained = true;
+              if (entry.source === "verified") {
+                opEvidence.reproduced = true;
+              }
+
+              // retrieval_contexts更新 (このteachセッションの文脈を追加)
+              const existingContexts = existing?.retrieval_contexts || [];
+              const newContexts = [
+                ...existingContexts,
+                { context: `teach:${subject}/${topic}`, at: now },
+              ].slice(-20);
+
               if (existing) {
-                // 既存の知識を更新（深化）
+                // 既存の知識を更新（深化）+ stability更新
                 const newDepth = Math.max(existing.understanding_depth || 1, entry.level);
-                const newConfidence = Math.min(1.0, Math.max(existing.confidence || 0, confidence));
                 const newTeachCount = (existing.teach_count || 1) + 1;
+                const timeSince = daysSince(existing.last_taught_at);
+                const newStability = updateStability(
+                  existing.stability || 3.0,
+                  true,
+                  timeSince,
+                  entry.level
+                );
 
                 await supabase
                   .from("core_knowledge")
                   .update({
                     content: entry.content,
                     understanding_depth: newDepth,
-                    confidence: newConfidence,
+                    confidence: Math.min(1.0, Math.max(existing.confidence || 0, confidence)),
                     connections: entry.connections.length > 0 ? entry.connections : undefined,
                     initial_mistake: entry.mistake || undefined,
                     correction_path: entry.correction || undefined,
                     embedding: embedding ? JSON.stringify(embedding) : undefined,
+                    mistake_embedding: mistakeEmbedding ? JSON.stringify(mistakeEmbedding) : undefined,
                     teach_count: newTeachCount,
-                    last_taught_at: new Date().toISOString(),
+                    last_taught_at: now,
+                    stability: newStability,
+                    operation_evidence: opEvidence,
+                    retrieval_contexts: newContexts,
                   })
                   .eq("id", existing.id);
               } else {
@@ -301,10 +369,77 @@ export async function POST(request: Request) {
                   initial_mistake: entry.mistake || null,
                   correction_path: entry.correction || null,
                   embedding: embedding ? JSON.stringify(embedding) : null,
+                  mistake_embedding: mistakeEmbedding ? JSON.stringify(mistakeEmbedding) : null,
                   teach_count: 1,
-                  last_taught_at: new Date().toISOString(),
+                  last_taught_at: now,
+                  stability: 3.0,
+                  operation_evidence: opEvidence,
+                  retrieval_contexts: newContexts,
                 });
               }
+
+              // 逆行干渉: 同subjectの既存知識のstabilityを微減
+              if (embedding && allExisting.length > 0) {
+                const interference = calcRetroactiveInterference(embedding, allExisting);
+                for (const { id, stabilityMultiplier } of interference) {
+                  const target = allExisting.find(e => e.id === id);
+                  if (target) {
+                    await supabase.from("core_knowledge").update({
+                      stability: Math.max(3, (target.stability || 3) * stabilityMultiplier),
+                    }).eq("id", id);
+                  }
+                }
+              }
+
+              // 矛盾検出 (非同期、エラーでも蓄積は止めない)
+              if (embedding && allExisting.length > 0) {
+                detectContradictions(entry.content, embedding, allExisting).then(result => {
+                  if (result.contradicts) {
+                    for (const conflictId of result.conflictingIds) {
+                      supabase.from("core_knowledge").update({
+                        interference_count: allExisting.find(e => e.id === conflictId)?.interference_count
+                          ? allExisting.find(e => e.id === conflictId)!.interference_count + 1
+                          : 1,
+                      }).eq("id", conflictId).then(() => {});
+                    }
+                  }
+                }).catch(() => {});
+              }
+
+              // RAG照合 (非同期、最大1件/セッション)
+              if (embedding && coreEntries.indexOf(entry) === 0) {
+                const entryForRAG = {
+                  ...({} as CoreKnowledgeRow),
+                  id: existing?.id || "",
+                  content: entry.content,
+                  embedding,
+                  subject,
+                } as CoreKnowledgeRow;
+                verifyAgainstRAG(entryForRAG, examId).then(async (ragResult) => {
+                  if (existing?.id && ragResult.status !== "unverifiable") {
+                    await supabase.from("core_knowledge").update({
+                      rag_verified_at: now,
+                      rag_verification_status: ragResult.status,
+                      ...(ragResult.status === "contradicted" ? {
+                        confidence: Math.max(0.1, confidence * 0.5),
+                        interference_count: (allExisting.find(e => e.id === existing.id)?.interference_count || 0) + 2,
+                      } : {}),
+                    }).eq("id", existing.id);
+                  }
+                }).catch(() => {});
+              }
+
+              // 抽象度昇格の検出
+              if (!abstractionUpgrade) {
+                const fakeEntry = { topic, subject, id: existing?.id || "" } as CoreKnowledgeRow;
+                abstractionUpgrade = detectAbstractionUpgrade(fakeEntry, allExisting);
+              }
+            }
+
+            // 関連知識プローブ対象を選定
+            const allConnections = coreEntries.flatMap(e => e.connections || []);
+            if (allConnections.length > 0) {
+              probeTargets = selectRelatedProbeTargets(allConnections, allExisting);
             }
           } catch (err) {
             console.error("core_knowledge upsert error:", err);
@@ -342,7 +477,7 @@ export async function POST(request: Request) {
             .eq("id", user.id);
         }
 
-        // 診断データをフロントに送信（拡張版）
+        // 診断データをフロントに送信（Brain Model拡張版）
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({
             diagnostics: {
@@ -353,6 +488,14 @@ export async function POST(request: Request) {
               verified: diagnostics.verified.length,
               level: diagnostics.maxLevel,
               coreUpdated: coreEntries.length,
+              probeTargets: probeTargets.map(t => ({
+                topic: t.topic,
+                effectiveConfidence: Math.round(calcEffectiveConfidence(t) * 100),
+              })),
+              abstractionUpgrade: abstractionUpgrade ? {
+                topic: abstractionUpgrade.topic,
+                contexts: abstractionUpgrade.contexts,
+              } : null,
             },
           })}\n\n`)
         );

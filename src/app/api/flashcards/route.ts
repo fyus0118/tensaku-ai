@@ -4,6 +4,7 @@ import { getExamById } from "@/lib/exams";
 import { sm2 } from "@/lib/adaptive-engine";
 import { flashcardsPostSchema, flashcardsPutSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { feedbackFromPractice } from "@/lib/core-engine";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -149,6 +150,13 @@ export async function PUT(request: Request) {
       last_reviewed_at: new Date().toISOString(),
     })
     .eq("id", cardId);
+
+  // Core Brain Model: flashcard結果をCoreにフィードバック
+  // quality 3+ = 想起成功、quality 0-2 = 想起失敗
+  feedbackFromPractice(
+    supabase, user.id, card.exam_id, card.subject, card.topic,
+    quality >= 3, quality, "flashcard"
+  ).catch(err => console.error("core feedback error:", err));
 
   return Response.json({ ok: true, nextReview: result.nextReviewAt });
 }
