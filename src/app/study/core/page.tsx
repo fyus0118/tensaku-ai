@@ -10,7 +10,7 @@ import {
   ChevronDown, ChevronRight, AlertCircle, CheckCircle2,
   RefreshCw, TrendingUp, Clock, Target, ShieldCheck,
   ShieldAlert, ShieldQuestion, Layers, Activity, Zap,
-  BookOpen,
+  BookOpen, Shuffle,
 } from "lucide-react";
 import { getExamById } from "@/lib/exams";
 
@@ -107,6 +107,14 @@ interface ReviewScheduleEntry {
   priority: number;
 }
 
+interface InterleaveRec {
+  subject: string;
+  topic: string;
+  reason: string;
+  effectiveConfidence: number;
+  retentionStatus: string;
+}
+
 interface CoreStats {
   totalEntries: number;
   totalCoverage: number;
@@ -115,6 +123,7 @@ interface CoreStats {
   recentEntries: RecentEntry[];
   needsReview: NeedsReviewEntry[];
   reviewSchedule: ReviewScheduleEntry[];
+  interleaveRecs: InterleaveRec[];
   chunkOpportunities: ChunkOpportunity[];
 }
 
@@ -368,6 +377,11 @@ function CoreContent() {
                 {/* 復習スケジュール */}
                 {stats.reviewSchedule && stats.reviewSchedule.length > 0 && (
                   <ReviewScheduleSection entries={stats.reviewSchedule} examId={examId} />
+                )}
+
+                {/* インターリーブ推奨 */}
+                {stats.interleaveRecs && stats.interleaveRecs.length > 0 && (
+                  <InterleaveSection recs={stats.interleaveRecs} examId={examId} />
                 )}
 
                 {/* 診断サマリー */}
@@ -835,6 +849,36 @@ function ReviewScheduleSection({ entries, examId }: { entries: ReviewScheduleEnt
             </Link>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function InterleaveSection({ recs, examId }: { recs: InterleaveRec[]; examId: string }) {
+  return (
+    <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Shuffle className="w-4 h-4 text-indigo-600" />
+        <h3 className="text-sm font-bold text-indigo-800">次に学ぶべきトピック</h3>
+        <span className="text-[10px] text-indigo-500">交互学習で定着率UP</span>
+      </div>
+      <div className="space-y-1.5">
+        {recs.map((rec, i) => (
+          <Link key={i} href={`/study/teach?exam=${examId}&topic=${encodeURIComponent(rec.topic)}`}
+            className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-indigo-100 transition-colors group">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${retentionBg(rec.retentionStatus)}`} />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-medium">{rec.subject} &gt; {rec.topic}</span>
+              <div className="flex items-center gap-2 text-[9px] mt-0.5">
+                <span className="text-indigo-500">{rec.reason}</span>
+                <span className={retentionColor(rec.retentionStatus)}>
+                  実効{rec.effectiveConfidence}%
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] text-indigo-400 group-hover:text-indigo-600">学ぶ →</span>
+          </Link>
+        ))}
       </div>
     </div>
   );

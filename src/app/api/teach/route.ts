@@ -18,6 +18,7 @@ import {
   verifyAgainstRAG,
   selectRelatedProbeTargets,
   calcEffectiveConfidence,
+  getInterleaveRecommendations,
   type CoreKnowledgeRow,
   type OperationEvidence,
 } from "@/lib/core-engine";
@@ -437,7 +438,7 @@ export async function POST(request: Request) {
                 const fakeEntry = { topic, subject, id: existing?.id || "" } as CoreKnowledgeRow;
                 abstractionUpgrade = detectAbstractionUpgrade(fakeEntry, allExisting);
                 if (abstractionUpgrade) {
-                  executeAbstractionUpgrade(supabase, abstractionUpgrade).catch(() => {});
+                  executeAbstractionUpgrade(supabase, user.id, examId, abstractionUpgrade, allExisting).catch(() => {});
                 }
               }
             }
@@ -489,6 +490,12 @@ export async function POST(request: Request) {
             .eq("id", user.id);
         }
 
+        // インターリーブ推奨を生成
+        const recentSubjects = [subject]; // 現在のセッションの科目
+        const interleaveRecs = allExisting.length > 0
+          ? getInterleaveRecommendations(subject, topic || null, allExisting, recentSubjects)
+          : [];
+
         // 診断データをフロントに送信（Brain Model拡張版）
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({
@@ -508,6 +515,13 @@ export async function POST(request: Request) {
                 topic: abstractionUpgrade.topic,
                 contexts: abstractionUpgrade.contexts,
               } : null,
+              interleave: interleaveRecs.map(r => ({
+                subject: r.subject,
+                topic: r.topic,
+                reason: r.reason,
+                effectiveConfidence: Math.round(r.effectiveConfidence * 100),
+                retentionStatus: r.retentionStatus,
+              })),
             },
           })}\n\n`)
         );

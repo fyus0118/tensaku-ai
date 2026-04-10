@@ -875,20 +875,164 @@ export async function executeChunking(
 
 export async function executeAbstractionUpgrade(
   supabase: SupabaseClient,
+  userId: string,
+  examId: string,
   upgrade: AbstractionUpgrade,
-): Promise<void> {
-  for (const entryId of upgrade.entryIds) {
-    const { data } = await supabase.from("core_knowledge")
-      .select("understanding_depth")
-      .eq("id", entryId)
-      .single();
+  sourceEntries: CoreKnowledgeRow[],
+): Promise<{ abstractEntryId: string; principle: string } | null> {
+  const relevantEntries = sourceEntries.filter(e => upgrade.entryIds.includes(e.id));
+  if (relevantEntries.length < 2) return null;
 
-    if (data && data.understanding_depth < 6) {
-      await supabase.from("core_knowledge").update({
-        understanding_depth: data.understanding_depth + 1,
-      }).eq("id", entryId);
-    }
+  // 既に同じトピックの抽象化エントリがあればスキップ
+  const { data: existing } = await supabase.from("core_knowledge")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("exam_id", examId)
+    .eq("topic", upgrade.topic)
+    .eq("source", "abstracted")
+    .limit(1);
+
+  if (existing && existing.length > 0) return null;
+
+  // Claudeで上位原則を生成
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const entriesContext = relevantEntries.map(e =>
+    `[${e.subject} > ${e.topic}] ${e.content.slice(0, 300)}`
+  ).join("\n\n");
+
+  let principle: string;
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 300,
+      messages: [{
+        role: "user",
+        content: `以下の知識は異なる科目で同じトピック「${upgrade.topic}」について述べています。\n\n${entriesContext}\n\nこれらに共通する汎用的な原則・概念を1-2文で抽出してください。具体的な科目名は含めず、抽象的な原則として書いてください。`,
+      }],
+    });
+    principle = response.content[0].type === "text" ? response.content[0].text : "";
+    if (!principle) return null;
+  } catch {
+    return null;
   }
+
+  // 抽象化エントリを新規作成
+  const embedding = await embedQuery(principle).catch(() => null);
+  const { data: newEntry, error } = await supabase.from("core_knowledge").insert({
+    user_id: userId,
+    exam_id: examId,
+    subject: upgrade.contexts.join(" / "),
+    topic: upgrade.topic,
+    content: principle,
+    source: "abstracted",
+    understanding_depth: 6,
+    confidence: Math.min(...relevantEntries.map(e => e.confidence)),
+    embedding,
+    connections: relevantEntries.map(e => e.topic).filter(Boolean),
+    prerequisite_ids: relevantEntries.map(e => e.id),
+    stability: Math.min(...relevantEntries.map(e => e.stability)),
+    operation_evidence: { recognized: true, reproduced: true, explained: true, applied: true, integrated: true },
+    connection_strengths: Object.fromEntries(
+      relevantEntries.map(e => [e.id, { strength: 0.9, type: "abstracts", co_retrieval_count: 0 }])
+    ),
+  }).select("id").single();
+
+  if (error || !newEntry) return null;
+
+  // 元エントリのunderstanding_depthを上げ、抽象エントリへの接続を追加
+  for (const entry of relevantEntries) {
+    const newStrengths = {
+      ...(entry.connection_strengths || {}),
+      [newEntry.id]: { strength: 0.9, type: "abstracted_by", co_retrieval_count: 0 },
+    };
+    await supabase.from("core_knowledge").update({
+      understanding_depth: Math.min(6, (entry.understanding_depth || 1) + 1),
+      connection_strengths: newStrengths,
+    }).eq("id", entry.id);
+  }
+
+  return { abstractEntryId: newEntry.id, principle };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 2r. インターリーブ推奨
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface InterleaveRecommendation {
+  subject: string;
+  topic: string;
+  reason: string;
+  effectiveConfidence: number;
+  retentionStatus: string;
+}
+
+/**
+ * 直近の学習トピックと異なる科目/トピックを推奨する。
+ * インターリーブ効果: 交互に異なるトピックを学ぶと記憶定着率が上がる。
+ */
+export function getInterleaveRecommendations(
+  currentSubject: string,
+  currentTopic: string | null,
+  allEntries: CoreKnowledgeRow[],
+  recentSubjects: string[],
+  maxRecommendations: number = 3,
+): InterleaveRecommendation[] {
+  // 最近学んだ科目を避け、異なる科目のfading/staleな知識を優先
+  const candidates = allEntries
+    .filter(e => {
+      // 同じ科目・トピックは除外
+      if (e.subject === currentSubject && e.topic === currentTopic) return false;
+      return true;
+    })
+    .map(e => {
+      const lastReinforced = laterDate(e.last_taught_at, e.last_retrieved_at);
+      const retention = calcRetention(lastReinforced, e.stability);
+      const ec = calcEffectiveConfidence(e, allEntries);
+      const status = getRetentionStatus(retention);
+
+      // スコアリング: 異なる科目 + fading/stale = 高スコア
+      let score = 0;
+
+      // 科目の多様性ボーナス
+      if (e.subject !== currentSubject) score += 3;
+      if (!recentSubjects.includes(e.subject)) score += 2;
+
+      // 復習が有効な状態（fadingが最もインターリーブ効果が高い）
+      if (status === "fading") score += 4;
+      else if (status === "stale") score += 3;
+      else if (status === "fresh") score += 1;
+      // forgottenは復習よりも再学習が必要なので低め
+
+      // effective_confidenceが中程度の知識が最も効果的
+      if (ec > 0.4 && ec < 0.8) score += 2;
+
+      return { entry: e, score, ec, status };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  // トピック重複を除いて上位N件
+  const seen = new Set<string>();
+  const results: InterleaveRecommendation[] = [];
+
+  for (const c of candidates) {
+    const key = `${c.entry.subject}:${c.entry.topic}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    results.push({
+      subject: c.entry.subject,
+      topic: c.entry.topic || "全般",
+      reason: c.entry.subject !== currentSubject
+        ? "異なる科目で交互学習"
+        : "同科目の別トピックで定着強化",
+      effectiveConfidence: c.ec,
+      retentionStatus: c.status,
+    });
+
+    if (results.length >= maxRecommendations) break;
+  }
+
+  return results;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

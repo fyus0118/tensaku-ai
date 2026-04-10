@@ -15,6 +15,7 @@ import {
   getOperationLevel,
   detectChunkingOpportunities,
   buildReviewSchedule,
+  getInterleaveRecommendations,
   type CoreKnowledgeRow,
   type ScoredKnowledge,
 } from "@/lib/core-engine";
@@ -292,6 +293,24 @@ export async function GET(request: Request) {
       priority: Math.round(r.priority * 10) / 10,
     }));
 
+  // インターリーブ推奨（最近学んだ科目から離れたトピックを提案）
+  const recentSubjects = knowledgeEntries.slice(0, 5).map(e => e.subject);
+  const lastEntry = knowledgeEntries[0];
+  const interleaveRecs = lastEntry
+    ? getInterleaveRecommendations(
+        lastEntry.subject,
+        lastEntry.topic,
+        knowledgeEntries,
+        recentSubjects
+      ).map(r => ({
+        subject: r.subject,
+        topic: r.topic,
+        reason: r.reason,
+        effectiveConfidence: Math.round(r.effectiveConfidence * 100),
+        retentionStatus: r.retentionStatus,
+      }))
+    : [];
+
   // 最近のCore蓄積（タイムライン用）
   const recentEntries = knowledgeEntries.slice(0, 20).map(e => ({
     subject: e.subject,
@@ -323,6 +342,7 @@ export async function GET(request: Request) {
       recentEntries,
       needsReview,
       reviewSchedule,
+      interleaveRecs,
       chunkOpportunities,
       chunks: knowledgeChunks,
     },
