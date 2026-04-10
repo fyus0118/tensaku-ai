@@ -19,6 +19,8 @@ import {
   selectRelatedProbeTargets,
   calcEffectiveConfidence,
   getInterleaveRecommendations,
+  predictTraps,
+  discoverInsights,
   type CoreKnowledgeRow,
   type OperationEvidence,
 } from "@/lib/core-engine";
@@ -201,6 +203,25 @@ export async function POST(request: Request) {
     effectiveConfidence: Math.round(calcEffectiveConfidence(t) * 100),
   }));
 
+  // Core Brain Model: 落とし穴予測と洞察を取得
+  const traps = allExistingForPrompt.length > 0
+    ? predictTraps(allExistingForPrompt)
+        .filter(t => !topic || t.topic === topic || t.subject === subject)
+        .slice(0, 3)
+    : [];
+  const trapContext = traps.length > 0
+    ? traps.map(t => `- [${t.trapType}] ${t.topic}: ${t.description.slice(0, 120)}`).join("\n")
+    : undefined;
+
+  const coreInsights = allExistingForPrompt.length > 0
+    ? discoverInsights(allExistingForPrompt)
+        .filter(i => i.severity !== "info")
+        .slice(0, 2)
+    : [];
+  const insightContext = coreInsights.length > 0
+    ? coreInsights.map(i => `- [${i.type}] ${i.title}`).join("\n")
+    : undefined;
+
   const systemPrompt = buildTeachSystemPrompt({
     examName: exam.name,
     subject,
@@ -209,6 +230,8 @@ export async function POST(request: Request) {
     coreKnowledge: existingCore || undefined,
     contradictionContext,
     probeTargets: probeTargetsForPrompt.length > 0 ? probeTargetsForPrompt : undefined,
+    trapPredictions: trapContext,
+    coreInsights: insightContext,
   });
 
   // 会話履歴を構築

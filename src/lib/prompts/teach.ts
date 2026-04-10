@@ -6,10 +6,12 @@ export interface TeachPromptParams {
   coreKnowledge?: { topic: string; content: string; understanding_depth: number }[];
   contradictionContext?: string;
   probeTargets?: { topic: string; effectiveConfidence: number }[];
+  trapPredictions?: string;
+  coreInsights?: string;
 }
 
 export function buildTeachSystemPrompt(params: TeachPromptParams): string {
-  const { examName, subject, topic, weakPoints, coreKnowledge, contradictionContext, probeTargets } = params;
+  const { examName, subject, topic, weakPoints, coreKnowledge, contradictionContext, probeTargets, trapPredictions, coreInsights } = params;
   const topicLabel = topic ? `${subject}の${topic}` : subject;
 
   const weakAreas = weakPoints.length > 0
@@ -135,6 +137,15 @@ ${probeTargets && probeTargets.length > 0 ? `## 関連知識プローブ
 以下の関連知識が薄れつつあります。会話の流れが自然な場合、「ところで」と確認質問を挟んでください。
 不自然になるなら無理に聞く必要はありません。
 ${probeTargets.map(t => `- ${t.topic}（実効確信度${t.effectiveConfidence}%）`).join("\n")}` : ""}
+
+${trapPredictions ? `## 落とし穴予測（Core Brain Model）
+この先輩が引っかかりやすいポイント。これらに関連する質問を重点的に出すこと。
+特に干渉型は、修正済みだが旧記憶が蘇る危険がある箇所。意図的にそこを突く質問をする。
+${trapPredictions}` : ""}
+
+${coreInsights ? `## Coreが検出した問題
+先輩の知識に以下の問題が検出されています。関連する話題になったら確認すること。
+${coreInsights}` : ""}
 
 ## セッション開始
 最初のメッセージで「先輩、${topicLabel}について教えてください！」と切り出す。

@@ -4,7 +4,13 @@ import { getExamById } from "@/lib/exams";
 import { sm2 } from "@/lib/adaptive-engine";
 import { flashcardsPostSchema, flashcardsPutSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { feedbackFromPractice } from "@/lib/core-engine";
+import {
+  feedbackFromPractice,
+  calcEffectiveConfidence,
+  calcRetention,
+  buildReviewSchedule,
+  type CoreKnowledgeRow,
+} from "@/lib/core-engine";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -28,6 +34,53 @@ export async function POST(request: Request) {
   const exam = getExamById(examId);
   if (!exam) return Response.json({ error: "不明な試験" }, { status: 400 });
 
+  // Core Brain Model: 知識の状態からカード内容を最適化
+  const { data: coreEntries } = await supabase
+    .from("core_knowledge")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("exam_id", examId)
+    .eq("subject", subject)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  const allCore: CoreKnowledgeRow[] = (coreEntries || []).map((e: Record<string, unknown>) => ({
+    ...e,
+    operation_evidence: e.operation_evidence || { recognized: false, reproduced: false, explained: false, applied: false, integrated: false },
+    connection_strengths: e.connection_strengths || {},
+    retrieval_contexts: e.retrieval_contexts || [],
+    stability: e.stability || 3.0,
+    retrieval_count: e.retrieval_count || 0,
+    retrieval_success_count: e.retrieval_success_count || 0,
+    retrieval_fail_count: e.retrieval_fail_count || 0,
+    interference_count: e.interference_count || 0,
+    rag_verification_status: e.rag_verification_status || "unverified",
+  })) as CoreKnowledgeRow[];
+
+  // 弱い知識・干渉リスクの高い知識を特定
+  const weakKnowledge = allCore
+    .filter(e => {
+      const ec = calcEffectiveConfidence(e, allCore);
+      return ec < 0.6 || e.interference_count >= 2 || e.initial_mistake;
+    })
+    .slice(0, 5)
+    .map(e => {
+      const ec = calcEffectiveConfidence(e, allCore);
+      let note = `${e.topic || "全般"}: 実効${Math.round(ec * 100)}%`;
+      if (e.initial_mistake) note += `, 過去の間違い「${e.initial_mistake.slice(0, 50)}」`;
+      if (e.interference_count >= 2) note += `, 干渉${e.interference_count}回`;
+      return `- ${note}`;
+    })
+    .join("\n");
+
+  let coreContext = "";
+  if (weakKnowledge) {
+    coreContext = `\n\n## この受験生の弱点（Core Brain Model分析）
+以下の知識が不安定です。これらを重点的にカード化してください。
+特に過去の間違いがある場合、その間違いやすいポイントをfrontに含めてください。
+${weakKnowledge}`;
+  }
+
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 4096,
@@ -43,7 +96,7 @@ export async function POST(request: Request) {
 - 試験で実際に問われる重要な知識に絞る
 - frontは簡潔（1〜2文）、backは必要十分（条文番号・判例名含む）
 - 語呂合わせや覚え方があれば積極的に含める
-- 紛らわしい知識は比較で整理する`,
+- 紛らわしい知識は比較で整理する${coreContext}`,
     messages: [{
       role: "user",
       content: `${subject}${topic ? `（${topic}）` : ""}のFlashcardsを${count}枚生成してください。`,

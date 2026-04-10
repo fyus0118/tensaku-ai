@@ -6,7 +6,14 @@ import { buildPracticeRAGContext } from "@/lib/rag/context-builder";
 import { getWeakPoints, getRecommendedDifficulty, updateStreak } from "@/lib/adaptive-engine";
 import { practicePostSchema, practicePutSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { feedbackFromPractice } from "@/lib/core-engine";
+import {
+  feedbackFromPractice,
+  calcEffectiveConfidence,
+  calcRetention,
+  predictTraps,
+  buildReviewSchedule,
+  type CoreKnowledgeRow,
+} from "@/lib/core-engine";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -76,6 +83,61 @@ export async function POST(request: Request) {
     getWeakPoints(supabase, user.id, examId, 5),
     getRecommendedDifficulty(supabase, user.id, examId, subject),
   ]);
+
+  // Core Brain Model: 知識の状態から出題を最適化
+  const { data: coreEntries } = await supabase
+    .from("core_knowledge")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("exam_id", examId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const allCore: CoreKnowledgeRow[] = (coreEntries || []).map((e: Record<string, unknown>) => ({
+    ...e,
+    operation_evidence: e.operation_evidence || { recognized: false, reproduced: false, explained: false, applied: false, integrated: false },
+    connection_strengths: e.connection_strengths || {},
+    retrieval_contexts: e.retrieval_contexts || [],
+    stability: e.stability || 3.0,
+    retrieval_count: e.retrieval_count || 0,
+    retrieval_success_count: e.retrieval_success_count || 0,
+    retrieval_fail_count: e.retrieval_fail_count || 0,
+    interference_count: e.interference_count || 0,
+    rag_verification_status: e.rag_verification_status || "unverified",
+  })) as CoreKnowledgeRow[];
+
+  // Coreの落とし穴予測から出題ヒントを生成
+  const traps = predictTraps(allCore).slice(0, 5);
+  const trapHints = traps.length > 0
+    ? traps.map(t => `- [${t.trapType}] ${t.subject}>${t.topic}: ${t.description.slice(0, 100)}`).join("\n")
+    : "";
+
+  // Coreの復習スケジュールから優先出題対象を特定
+  const reviewSchedule = buildReviewSchedule(allCore, allCore).slice(0, 5);
+  const reviewHints = reviewSchedule.length > 0
+    ? reviewSchedule.map(r => `- ${r.subject}>${r.topic || "全般"}: 記憶${Math.round(r.currentRetention * 100)}%, 実効${Math.round(r.effectiveConfidence * 100)}%`).join("\n")
+    : "";
+
+  // Coreの過信知識（confidence高いがeffectiveConfidence低い）
+  const overconfident = allCore
+    .filter(e => e.confidence > 0.7 && calcEffectiveConfidence(e, allCore) < 0.5)
+    .slice(0, 3)
+    .map(e => `- ${e.subject}>${e.topic}: 自信${Math.round(e.confidence * 100)}%→実効${Math.round(calcEffectiveConfidence(e, allCore) * 100)}%`)
+    .join("\n");
+
+  // Core情報をシステムプロンプトに注入
+  if (trapHints || reviewHints || overconfident) {
+    systemPrompt += `\n\n## Core Brain Model分析（この受験生の知識状態）\n`;
+    if (trapHints) {
+      systemPrompt += `### 落とし穴（この受験生が引っかかりやすいポイント）\n${trapHints}\nこれらのポイントを突く問題を優先的に出題してください。\n\n`;
+    }
+    if (overconfident) {
+      systemPrompt += `### 過信している知識（わかったつもりの箇所）\n${overconfident}\n実は理解が浅い箇所なので、応用問題で揺さぶってください。\n\n`;
+    }
+    if (reviewHints) {
+      systemPrompt += `### 忘却しかけている知識\n${reviewHints}\nこれらのトピックに関連する出題も検討してください。\n`;
+    }
+  }
 
   const effectiveDifficulty = difficulty || recommendedDifficulty;
   const weakTopics = weakPoints.map((wp) => `${wp.subject}>${wp.topic}(正答率${wp.accuracyPct}%)`);
