@@ -104,7 +104,7 @@ export async function GET(request: Request) {
   const knowledgeChunks = chunks || [];
 
   // confidence校正 (practice結果との照合)
-  await calibrateConfidence(supabase, user.id, examId, knowledgeEntries).catch(() => {});
+  await calibrateConfidence(supabase, user.id, examId, knowledgeEntries).catch((err: unknown) => console.error("calibration error:", err));
 
   // teach_diagnosticsからセッション統計
   const { data: diagnosticsData } = await supabase
@@ -437,6 +437,33 @@ export async function POST(request: Request) {
   const now = new Date().toISOString();
   const allRetrieved = [...reconstructed.certain, ...reconstructed.uncertain, ...reconstructed.interfered];
 
+  // 各エントリのconnection_strengthsをメモリ上でバッチ集約
+  const strengthUpdates = new Map<string, Record<string, { strength: number; type: string; co_retrieval_count: number }>>();
+
+  // co_retrieval更新をメモリ上で集約（O(n^2)計算だがDB書き込みはO(n)回に削減）
+  for (let i = 0; i < allRetrieved.length; i++) {
+    for (let j = i + 1; j < allRetrieved.length; j++) {
+      const a = allRetrieved[i];
+      const b = allRetrieved[j];
+
+      // a -> b
+      if (!strengthUpdates.has(a.id)) {
+        strengthUpdates.set(a.id, { ...(a.connection_strengths || {}) });
+      }
+      const aStrengths = strengthUpdates.get(a.id)!;
+      if (aStrengths[b.id]) {
+        aStrengths[b.id] = {
+          ...aStrengths[b.id],
+          co_retrieval_count: (aStrengths[b.id].co_retrieval_count || 0) + 1,
+          strength: Math.min(1.0, aStrengths[b.id].strength + 0.05),
+        };
+      } else {
+        aStrengths[b.id] = { strength: 0.3, type: "related", co_retrieval_count: 1 };
+      }
+    }
+  }
+
+  // バッチDB書き込み: 1エントリ1回のupdate
   for (const entry of allRetrieved) {
     const daysSince = entry.last_retrieved_at
       ? (Date.now() - new Date(entry.last_retrieved_at).getTime()) / (1000 * 60 * 60 * 24)
@@ -448,29 +475,22 @@ export async function POST(request: Request) {
       { context: question.slice(0, 200), at: now, embedding: queryEmbedding },
     ].slice(-20);
 
-    supabase.from("core_knowledge").update({
+    const updatePayload: Record<string, unknown> = {
       retrieval_count: (entry.retrieval_count || 0) + 1,
       last_retrieved_at: now,
       stability: newStability,
       retrieval_contexts: newContexts,
       retrieval_success_count: (entry.retrieval_success_count || 0) + 1,
-    }).eq("id", entry.id).then(() => {});
-  }
+    };
 
-  // 一緒に想起された知識同士のco_retrieval_countを更新
-  for (let i = 0; i < allRetrieved.length; i++) {
-    for (let j = i + 1; j < allRetrieved.length; j++) {
-      const a = allRetrieved[i];
-      const b = allRetrieved[j];
-      const aStrengths = { ...(a.connection_strengths || {}) };
-      if (aStrengths[b.id]) {
-        aStrengths[b.id].co_retrieval_count = (aStrengths[b.id].co_retrieval_count || 0) + 1;
-        aStrengths[b.id].strength = Math.min(1.0, aStrengths[b.id].strength + 0.05);
-      } else {
-        aStrengths[b.id] = { strength: 0.3, type: "related", co_retrieval_count: 1 };
-      }
-      supabase.from("core_knowledge").update({ connection_strengths: aStrengths }).eq("id", a.id).then(() => {});
+    // connection_strengthsの更新があれば一緒にバッチ
+    if (strengthUpdates.has(entry.id)) {
+      updatePayload.connection_strengths = strengthUpdates.get(entry.id);
     }
+
+    supabase.from("core_knowledge").update(updatePayload)
+      .eq("id", entry.id)
+      .then(() => {}, (err: unknown) => console.error("retrieval update error:", err));
   }
 
   // 再構成結果からCoreプロンプトを構築

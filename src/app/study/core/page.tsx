@@ -374,23 +374,11 @@ function CoreContent() {
                 {/* 全体サマリー */}
                 <OverviewSection stats={stats} />
 
-                {/* 復習スケジュール */}
-                {stats.reviewSchedule && stats.reviewSchedule.length > 0 && (
-                  <ReviewScheduleSection entries={stats.reviewSchedule} examId={examId} />
-                )}
-
-                {/* インターリーブ推奨 */}
-                {stats.interleaveRecs && stats.interleaveRecs.length > 0 && (
-                  <InterleaveSection recs={stats.interleaveRecs} examId={examId} />
-                )}
+                {/* アクションセンター（復習/インターリーブ/チャンク） */}
+                <ActionCenter stats={stats} examId={examId} />
 
                 {/* 診断サマリー */}
                 <DiagnosticsSection diagnostics={stats.diagnostics} />
-
-                {/* チャンク機会 */}
-                {stats.chunkOpportunities && stats.chunkOpportunities.length > 0 && (
-                  <ChunkSection chunks={stats.chunkOpportunities} />
-                )}
 
                 {/* 科目別マップ */}
                 <div className="mt-8">
@@ -777,7 +765,7 @@ function SubjectCard({ stat, examId }: { stat: SubjectStat; examId: string }) {
                 <AlertCircle className="w-3 h-3" />未学習（{stat.gaps.length}個）
               </div>
               {stat.gaps.map(gap => (
-                <Link key={gap} href={`/study/teach?exam=${examId}&topic=${encodeURIComponent(gap)}`}
+                <Link key={gap} href={`/study/teach?exam=${examId}&subject=${encodeURIComponent(stat.subject)}&topic=${encodeURIComponent(gap)}`}
                   className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-red-50 transition-colors group">
                   <div className="w-3.5 h-3.5 rounded-full border-2 border-red-300 shrink-0" />
                   <span className="text-xs text-red-600 group-hover:text-red-700">{gap}</span>
@@ -805,7 +793,6 @@ function formatReviewTiming(overdueDays: number, reviewAt: string): { text: stri
 
 function ReviewScheduleSection({ entries, examId }: { entries: ReviewScheduleEntry[]; examId: string }) {
   const overdue = entries.filter(e => e.overdueDays > 0);
-  const upcoming = entries.filter(e => e.overdueDays <= 0);
 
   return (
     <div className="p-4 rounded-xl bg-orange-50 border border-orange-200 mb-6">
@@ -822,7 +809,7 @@ function ReviewScheduleSection({ entries, examId }: { entries: ReviewScheduleEnt
         {entries.map(entry => {
           const timing = formatReviewTiming(entry.overdueDays, entry.reviewAt);
           return (
-            <Link key={entry.id} href={`/study/teach?exam=${examId}${entry.topic ? `&topic=${encodeURIComponent(entry.topic)}` : ""}`}
+            <Link key={entry.id} href={`/study/teach?exam=${examId}&subject=${encodeURIComponent(entry.subject)}${entry.topic ? `&topic=${encodeURIComponent(entry.topic)}` : ""}`}
               className={`flex items-center gap-3 py-1.5 px-2 rounded-lg transition-colors group ${
                 timing.urgent ? "hover:bg-red-100 bg-red-50/50" : "hover:bg-orange-100"
               }`}>
@@ -854,6 +841,62 @@ function ReviewScheduleSection({ entries, examId }: { entries: ReviewScheduleEnt
   );
 }
 
+function ActionCenter({ stats, examId }: { stats: CoreStats; examId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const reviewCount = stats.reviewSchedule?.filter(e => e.overdueDays > 0).length || 0;
+  const interleaveCount = stats.interleaveRecs?.length || 0;
+  const chunkCount = stats.chunkOpportunities?.length || 0;
+  const totalActions = reviewCount + interleaveCount + chunkCount;
+
+  if (totalActions === 0) return null;
+
+  return (
+    <div className="mb-6 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex items-center justify-between hover:bg-[var(--color-bg-secondary)]/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          {expanded ? <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" /> : <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)]" />}
+          <Zap className="w-4 h-4 text-[var(--color-accent)]" />
+          <span className="text-sm font-bold">アクションセンター</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {reviewCount > 0 && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+              復習{reviewCount}件
+            </span>
+          )}
+          {interleaveCount > 0 && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+              交互学習{interleaveCount}件
+            </span>
+          )}
+          {chunkCount > 0 && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+              統合{chunkCount}件
+            </span>
+          )}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-[var(--color-border)] p-4 space-y-4">
+          {stats.reviewSchedule && stats.reviewSchedule.length > 0 && (
+            <ReviewScheduleSection entries={stats.reviewSchedule} examId={examId} />
+          )}
+          {stats.interleaveRecs && stats.interleaveRecs.length > 0 && (
+            <InterleaveSection recs={stats.interleaveRecs} examId={examId} />
+          )}
+          {stats.chunkOpportunities && stats.chunkOpportunities.length > 0 && (
+            <ChunkSection chunks={stats.chunkOpportunities} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InterleaveSection({ recs, examId }: { recs: InterleaveRec[]; examId: string }) {
   return (
     <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 mb-6">
@@ -864,7 +907,7 @@ function InterleaveSection({ recs, examId }: { recs: InterleaveRec[]; examId: st
       </div>
       <div className="space-y-1.5">
         {recs.map((rec, i) => (
-          <Link key={i} href={`/study/teach?exam=${examId}&topic=${encodeURIComponent(rec.topic)}`}
+          <Link key={i} href={`/study/teach?exam=${examId}&subject=${encodeURIComponent(rec.subject)}&topic=${encodeURIComponent(rec.topic)}`}
             className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-indigo-100 transition-colors group">
             <div className={`w-2 h-2 rounded-full shrink-0 ${retentionBg(rec.retentionStatus)}`} />
             <div className="flex-1 min-w-0">

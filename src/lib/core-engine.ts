@@ -223,18 +223,40 @@ export function updateStability(
   const normalizedDifficulty = Math.min(1.0, Math.max(0.2, difficulty / 5));
 
   if (success) {
-    const spacingBonus = timeSinceLast > currentStability * 0.5 ? 1.0 : 0.0;
-    const difficultyMultiplier = 1.0 + normalizedDifficulty * 2.5;
-    return currentStability * (difficultyMultiplier + spacingBonus);
+    // SM-2準拠: 倍率上限2.5、spacingBonusは控えめ
+    const spacingBonus = timeSinceLast > currentStability * 0.5 ? 0.3 : 0.0;
+    const difficultyMultiplier = 1.0 + normalizedDifficulty * 1.5;
+    const newStability = currentStability * Math.min(2.5, difficultyMultiplier + spacingBonus);
+    // 上限365日（1年以上の間隔は非現実的）
+    return Math.min(365, newStability);
   } else {
     const damageMultiplier = 0.2 + normalizedDifficulty * 0.3;
-    return Math.max(3, currentStability * damageMultiplier);
+    // 下限0.5日（失敗したら翌日復習すべき）
+    return Math.max(0.5, currentStability * damageMultiplier);
   }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 2c. ファクター計算
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// O(1)参照用のインデックス（allEntries.find O(n)を排除）
+function buildEntryIndex(entries: CoreKnowledgeRow[]): Map<string, CoreKnowledgeRow> {
+  const map = new Map<string, CoreKnowledgeRow>();
+  for (const e of entries) map.set(e.id, e);
+  return map;
+}
+
+// モジュールレベルキャッシュ（同一リクエスト内で再利用）
+let _cachedIndex: Map<string, CoreKnowledgeRow> | null = null;
+let _cachedEntries: CoreKnowledgeRow[] | null = null;
+
+function getEntryIndex(allEntries: CoreKnowledgeRow[]): Map<string, CoreKnowledgeRow> {
+  if (_cachedEntries === allEntries && _cachedIndex) return _cachedIndex;
+  _cachedIndex = buildEntryIndex(allEntries);
+  _cachedEntries = allEntries;
+  return _cachedIndex;
+}
 
 export function calcConnectionFactor(
   connectionStrengths: Record<string, ConnectionStrength>,
@@ -249,11 +271,11 @@ export function calcConnectionFactor(
 
   if (!allEntries) return baseFactor;
 
-  // 接続先のeffective_confidenceによる追加ペナルティ
+  const index = getEntryIndex(allEntries);
   let connHealthSum = 0;
   let connCount = 0;
   for (const [targetId, conn] of connections) {
-    const target = allEntries.find(e => e.id === targetId);
+    const target = index.get(targetId);
     if (!target) continue;
 
     const targetRetention = calcRetention(
@@ -261,10 +283,9 @@ export function calcConnectionFactor(
       target.stability
     );
 
-    // depends_onは重く、relatedは軽く
     const weight = conn.type === "depends_on" ? 1.5
       : conn.type === "example_of" ? 1.2
-      : conn.type === "contradicts" ? 0 // contradicts は別処理
+      : conn.type === "contradicts" ? 0
       : 1.0;
 
     connHealthSum += targetRetention * weight;
@@ -282,8 +303,9 @@ export function calcPrerequisiteHealth(
 ): number {
   if (!prerequisiteIds || prerequisiteIds.length === 0) return 1.0;
 
+  const index = getEntryIndex(allEntries);
   const prereqs = prerequisiteIds
-    .map(pid => allEntries.find(e => e.id === pid))
+    .map(pid => index.get(pid))
     .filter((e): e is CoreKnowledgeRow => !!e);
 
   if (prereqs.length === 0) return 1.0;
@@ -382,6 +404,7 @@ function expandNetwork(
   allEntries: CoreKnowledgeRow[],
   maxHops: number = 2
 ): CoreKnowledgeRow[] {
+  const index = getEntryIndex(allEntries);
   const visited = new Set<string>(seeds.map(s => s.id));
   let frontier = [...seeds];
   const result = [...seeds];
@@ -392,7 +415,7 @@ function expandNetwork(
       const connIds = Object.keys(node.connection_strengths || {});
       for (const connId of connIds) {
         if (visited.has(connId)) continue;
-        const target = allEntries.find(e => e.id === connId);
+        const target = index.get(connId);
         if (!target) continue;
 
         const conn = node.connection_strengths[connId];

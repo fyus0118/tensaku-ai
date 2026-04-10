@@ -407,7 +407,7 @@ export async function POST(request: Request) {
                       }).eq("id", conflictId).then(() => {});
                     }
                   }
-                }).catch(() => {});
+                }).catch((err: unknown) => console.error("core brain async error:", err));
               }
 
               // RAG照合 (非同期、最大1件/セッション)
@@ -430,7 +430,7 @@ export async function POST(request: Request) {
                       } : {}),
                     }).eq("id", existing.id);
                   }
-                }).catch(() => {});
+                }).catch((err: unknown) => console.error("core brain async error:", err));
               }
 
               // 抽象度昇格の検出と実行
@@ -438,7 +438,7 @@ export async function POST(request: Request) {
                 const fakeEntry = { topic, subject, id: existing?.id || "" } as CoreKnowledgeRow;
                 abstractionUpgrade = detectAbstractionUpgrade(fakeEntry, allExisting);
                 if (abstractionUpgrade) {
-                  executeAbstractionUpgrade(supabase, user.id, examId, abstractionUpgrade, allExisting).catch(() => {});
+                  executeAbstractionUpgrade(supabase, user.id, examId, abstractionUpgrade, allExisting).catch((err: unknown) => console.error("core brain async error:", err));
                 }
               }
             }
@@ -446,7 +446,7 @@ export async function POST(request: Request) {
             // チャンキング自動実行（候補があれば統合）
             const chunkCandidates = detectChunkingOpportunities(allExisting);
             for (const candidate of chunkCandidates) {
-              executeChunking(supabase, user.id, examId, candidate).catch(() => {});
+              executeChunking(supabase, user.id, examId, candidate).catch((err: unknown) => console.error("core brain async error:", err));
             }
 
             // 関連知識プローブ対象を選定
