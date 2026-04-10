@@ -1175,8 +1175,385 @@ export async function verifyAgainstRAG(
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Utilities
+// 3. 革新機能: 自発的洞察エンジン
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface CoreInsight {
+  type: "contradiction" | "hidden_connection" | "pattern" | "vulnerability" | "emergence";
+  severity: "info" | "warning" | "critical";
+  title: string;
+  description: string;
+  entryIds: string[];
+  subjects: string[];
+}
+
+/**
+ * 知識全体をスキャンして、ユーザーが気づいていない洞察を発見する。
+ * - 未検出の矛盾（異なるセッションで教えた矛盾する知識）
+ * - 隠れた接続（異なる科目で同じ概念が現れているが未接続）
+ * - 間違いパターン（同じタイプの間違いを繰り返している）
+ * - 知識の脆弱点（前提知識が崩壊している上位知識）
+ * - 創発的知識（複数の知識を組み合わせると見える新しい原則）
+ */
+export function discoverInsights(
+  allEntries: CoreKnowledgeRow[],
+): CoreInsight[] {
+  const insights: CoreInsight[] = [];
+  const index = getEntryIndex(allEntries);
+
+  // 1. 未検出の矛盾: 高類似度だがinterferenceが記録されていないペア
+  for (let i = 0; i < allEntries.length && i < 200; i++) {
+    const a = allEntries[i];
+    if (!a.embedding) continue;
+    for (let j = i + 1; j < allEntries.length && j < 200; j++) {
+      const b = allEntries[j];
+      if (!b.embedding) continue;
+      if (a.subject === b.subject && a.topic === b.topic) continue; // 同トピックは既知
+
+      const sim = cosineSimilarity(a.embedding, b.embedding);
+      if (sim > 0.75) {
+        // 高類似度なのに接続がない = 潜在的矛盾か隠れた接続
+        const connected = a.connection_strengths[b.id] || b.connection_strengths[a.id];
+        if (!connected) {
+          if (a.subject !== b.subject) {
+            insights.push({
+              type: "hidden_connection",
+              severity: "info",
+              title: `「${a.topic || a.subject}」と「${b.topic || b.subject}」に隠れた接続`,
+              description: `異なる科目(${a.subject}と${b.subject})で非常に似た知識がありますが、まだ接続されていません。これらを関連付けると理解が深まる可能性があります。`,
+              entryIds: [a.id, b.id],
+              subjects: [a.subject, b.subject],
+            });
+          } else {
+            insights.push({
+              type: "contradiction",
+              severity: "warning",
+              title: `「${a.topic}」と「${b.topic}」に矛盾の可能性`,
+              description: `同じ科目(${a.subject})内で非常に似た知識があるのに接続されていません。内容が矛盾していないか確認が必要です。`,
+              entryIds: [a.id, b.id],
+              subjects: [a.subject],
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 2. 間違いパターン: 同じ科目で複数のmistakeがある場合
+  const mistakesBySubject = new Map<string, CoreKnowledgeRow[]>();
+  for (const entry of allEntries) {
+    if (!entry.initial_mistake) continue;
+    const list = mistakesBySubject.get(entry.subject) || [];
+    list.push(entry);
+    mistakesBySubject.set(entry.subject, list);
+  }
+  for (const [subject, mistakes] of mistakesBySubject) {
+    if (mistakes.length >= 3) {
+      // 間違いのembedding同士が類似 = 同じパターンの間違い
+      const mistakeEntries = mistakes.filter(e => e.mistake_embedding);
+      for (let i = 0; i < mistakeEntries.length; i++) {
+        for (let j = i + 1; j < mistakeEntries.length; j++) {
+          const sim = cosineSimilarity(mistakeEntries[i].mistake_embedding!, mistakeEntries[j].mistake_embedding!);
+          if (sim > 0.6) {
+            insights.push({
+              type: "pattern",
+              severity: "critical",
+              title: `${subject}で同じタイプの間違いを繰り返している`,
+              description: `「${mistakeEntries[i].topic}」と「${mistakeEntries[j].topic}」で似たような間違いをしています。根本的な理解に問題がある可能性があります。`,
+              entryIds: [mistakeEntries[i].id, mistakeEntries[j].id],
+              subjects: [subject],
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 3. 脆弱点: prerequisiteが崩壊しているのに上位知識が高confidenceを維持
+  for (const entry of allEntries) {
+    if (!entry.prerequisite_ids?.length) continue;
+    const ec = calcEffectiveConfidence(entry, allEntries);
+    if (ec > 0.6) continue; // 既にeffective_confidenceで反映済み
+
+    const brokenPrereqs = entry.prerequisite_ids
+      .map(pid => index.get(pid))
+      .filter((e): e is CoreKnowledgeRow => !!e)
+      .filter(e => {
+        const ret = calcRetention(laterDate(e.last_taught_at, e.last_retrieved_at), e.stability);
+        return ret < 0.3;
+      });
+
+    if (brokenPrereqs.length > 0 && entry.confidence > 0.7) {
+      insights.push({
+        type: "vulnerability",
+        severity: "critical",
+        title: `「${entry.topic || entry.subject}」の土台が崩れている`,
+        description: `この知識の前提(${brokenPrereqs.map(e => e.topic).join("、")})が忘却されています。表面上は覚えているつもりでも、実際の試験では解けない危険があります。`,
+        entryIds: [entry.id, ...brokenPrereqs.map(e => e.id)],
+        subjects: [entry.subject],
+      });
+    }
+  }
+
+  // 4. 創発的知識: 3つ以上の科目にまたがる同一トピック
+  const topicAcrossSubjects = new Map<string, { subjects: string[]; entries: CoreKnowledgeRow[] }>();
+  for (const entry of allEntries) {
+    if (!entry.topic) continue;
+    const data = topicAcrossSubjects.get(entry.topic) || { subjects: [], entries: [] };
+    if (!data.subjects.includes(entry.subject)) data.subjects.push(entry.subject);
+    data.entries.push(entry);
+    topicAcrossSubjects.set(entry.topic, data);
+  }
+  for (const [topic, data] of topicAcrossSubjects) {
+    if (data.subjects.length >= 3) {
+      insights.push({
+        type: "emergence",
+        severity: "info",
+        title: `「${topic}」が${data.subjects.length}科目にまたがる普遍的概念`,
+        description: `${data.subjects.join("、")}に共通する概念です。これらを統合すると、個別の科目を超えた深い理解が得られる可能性があります。`,
+        entryIds: data.entries.map(e => e.id),
+        subjects: data.subjects,
+      });
+    }
+  }
+
+  // severity順でソート: critical > warning > info
+  const severityOrder = { critical: 0, warning: 1, info: 2 };
+  return insights.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 3b. 落とし穴予測エンジン
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface TrapPrediction {
+  topic: string;
+  subject: string;
+  trapType: "interference" | "overconfidence" | "foundation_collapse" | "recency_illusion";
+  confidence: number; // この罠に引っかかる確率 0-1
+  description: string;
+  entryIds: string[];
+}
+
+/**
+ * ユーザーが試験で引っかかりそうな落とし穴を予測する。
+ * mistake_embedding、interference_count、practice結果、retention状態から推定。
+ */
+export function predictTraps(
+  allEntries: CoreKnowledgeRow[],
+): TrapPrediction[] {
+  const traps: TrapPrediction[] = [];
+
+  for (const entry of allEntries) {
+    // 1. 干渉型: 過去に間違えた + 修正済みだが干渉回数が高い
+    if (entry.initial_mistake && entry.interference_count >= 2) {
+      const retention = calcRetention(
+        laterDate(entry.last_taught_at, entry.last_retrieved_at),
+        entry.stability
+      );
+      // 間違いの記憶が残っている + 正しい記憶が薄れている = 最も危険
+      const trapProb = Math.min(0.95, 0.3 + entry.interference_count * 0.1 + (1 - retention) * 0.3);
+      if (trapProb > 0.4) {
+        traps.push({
+          topic: entry.topic || "全般",
+          subject: entry.subject,
+          trapType: "interference",
+          confidence: trapProb,
+          description: `以前「${entry.initial_mistake.slice(0, 50)}」と間違えた知識。修正済みだが、元の誤解が${entry.interference_count}回干渉しており、プレッシャー下で旧記憶が優先される危険がある。`,
+          entryIds: [entry.id],
+        });
+      }
+    }
+
+    // 2. 過信型: confidence高いがpracticeで間違えている
+    if (entry.confidence > 0.8) {
+      const ec = calcEffectiveConfidence(entry, allEntries);
+      if (ec < 0.5) {
+        traps.push({
+          topic: entry.topic || "全般",
+          subject: entry.subject,
+          trapType: "overconfidence",
+          confidence: 0.7,
+          description: `自信は${Math.round(entry.confidence * 100)}%あるが、実効的には${Math.round(ec * 100)}%まで落ちている。「わかったつもり」で見落とす危険が高い。`,
+          entryIds: [entry.id],
+        });
+      }
+    }
+
+    // 3. 土台崩壊型: prerequisiteが忘却済み
+    if (entry.prerequisite_ids?.length) {
+      const index = getEntryIndex(allEntries);
+      const forgottenPrereqs = entry.prerequisite_ids
+        .map(pid => index.get(pid))
+        .filter((e): e is CoreKnowledgeRow => !!e)
+        .filter(e => calcRetention(laterDate(e.last_taught_at, e.last_retrieved_at), e.stability) < 0.2);
+
+      if (forgottenPrereqs.length > 0) {
+        traps.push({
+          topic: entry.topic || "全般",
+          subject: entry.subject,
+          trapType: "foundation_collapse",
+          confidence: 0.6 + forgottenPrereqs.length * 0.1,
+          description: `前提知識(${forgottenPrereqs.map(e => e.topic).filter(Boolean).join("、")})が忘却されている。この知識は応用問題で崩れる。`,
+          entryIds: [entry.id, ...forgottenPrereqs.map(e => e.id)],
+        });
+      }
+    }
+
+    // 4. 新鮮さの幻想型: 最近学んだだけでstabilityが低い
+    if (entry.teach_count <= 1 && entry.stability <= 3 && entry.retrieval_count === 0) {
+      const daysSinceTaught = daysSince(entry.last_taught_at);
+      if (daysSinceTaught < 3 && entry.confidence > 0.7) {
+        traps.push({
+          topic: entry.topic || "全般",
+          subject: entry.subject,
+          trapType: "recency_illusion",
+          confidence: 0.5,
+          description: `${Math.round(daysSinceTaught * 24)}時間前に1回教えただけ。今は覚えているが、試験日には消えている可能性が高い。一度も想起テストしていない。`,
+          entryIds: [entry.id],
+        });
+      }
+    }
+  }
+
+  return traps
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 10);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 3c. Core人格プロンプト生成
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * 再構成結果から、Coreの「人格」を反映したリッチなプロンプトを生成する。
+ * Coreは単なるRAGではなく、ユーザーの知識の分身として自分の弱さを自覚し、
+ * 自発的に洞察を提供する。
+ */
+export function buildCorePersonalityPrompt(
+  reconstructed: ReconstructedResponse,
+  allEntries: CoreKnowledgeRow[],
+): string {
+  // 干渉の詳細情報（具体的な過去の間違い）
+  const interferenceDetails = reconstructed.interfered
+    .filter(k => k.initial_mistake)
+    .map(k => `- 「${k.topic}」: 以前「${k.initial_mistake!.slice(0, 80)}」と間違えた。修正済みだが${k.interference_count}回干渉が発生。`)
+    .join("\n");
+
+  // 知識のネットワーク状態（接続が強い知識をMentalMapとして提示）
+  const mentalMap = reconstructed.certain
+    .filter(k => Object.keys(k.connection_strengths).length > 0)
+    .slice(0, 5)
+    .map(k => {
+      const index = getEntryIndex(allEntries);
+      const connections = Object.entries(k.connection_strengths)
+        .filter(([, c]) => c.strength > 0.5)
+        .map(([id, c]) => {
+          const target = index.get(id);
+          return target ? `${target.topic || target.subject}(${c.type}, 強度${Math.round(c.strength * 100)}%)` : null;
+        })
+        .filter(Boolean);
+      if (connections.length === 0) return null;
+      return `- 「${k.topic}」→ ${connections.join(", ")}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  // この質問に関連するトラップ予測
+  const relatedTraps = predictTraps(allEntries)
+    .filter(t => {
+      return reconstructed.certain.some(k => k.topic === t.topic || k.subject === t.subject)
+        || reconstructed.uncertain.some(k => k.topic === t.topic)
+        || reconstructed.interfered.some(k => k.topic === t.topic);
+    })
+    .slice(0, 3);
+
+  const trapWarnings = relatedTraps.length > 0
+    ? relatedTraps.map(t => `- [${Math.round(t.confidence * 100)}%の確率で罠] ${t.description}`).join("\n")
+    : "";
+
+  // 関連する洞察
+  const insights = discoverInsights(allEntries)
+    .filter(i => {
+      const relevantIds = new Set([
+        ...reconstructed.certain.map(k => k.id),
+        ...reconstructed.uncertain.map(k => k.id),
+        ...reconstructed.interfered.map(k => k.id),
+      ]);
+      return i.entryIds.some(id => relevantIds.has(id));
+    })
+    .slice(0, 2);
+
+  const insightNotes = insights.length > 0
+    ? insights.map(i => `- [${i.type}] ${i.title}: ${i.description}`).join("\n")
+    : "";
+
+  // 確実な知識のフォーマット（リッチ版）
+  function formatRich(entries: ScoredKnowledge[], label: string): string {
+    if (entries.length === 0) return "";
+    return `### ${label}\n` + entries.map((k, i) => {
+      let meta = `実効確信度${Math.round(k.effectiveConfidence * 100)}%, 記憶定着${Math.round(k.retentionValue * 100)}%`;
+      if (k.retrieval_count > 0) meta += `, ${k.retrieval_count}回想起済み`;
+      if (k.teach_count > 1) meta += `, ${k.teach_count}回学習`;
+      const opLevel = getOperationLevel(k.operation_evidence);
+      if (opLevel !== "none") meta += `, 運用:${opLevel}`;
+
+      let content = `[${i + 1}] ${k.subject}${k.topic ? ` > ${k.topic}` : ""} (${meta})\n${k.content}`;
+
+      if (k.initial_mistake) {
+        content += `\n[過去の間違い: 「${k.initial_mistake.slice(0, 100)}」→ 修正: 「${k.correction_path?.slice(0, 100) || ""}」]`;
+      }
+      return content;
+    }).join("\n\n");
+  }
+
+  const certainContext = formatRich(reconstructed.certain, "確実に覚えている知識");
+  const uncertainContext = formatRich(reconstructed.uncertain, "うっすら覚えているが自信がない知識");
+  const interferedContext = formatRich(reconstructed.interfered, "過去に間違えて干渉が残っている知識");
+  const gapsContext = reconstructed.gaps.length > 0 ? reconstructed.gaps.join("、") : "なし";
+
+  return `あなたは「StudyEngines」の**Core（コア）** -- ユーザーの知識の分身です。
+
+## あなたは誰か
+あなたはまっさらな状態から、ユーザーが教えてくれた知識だけで構築されました。
+あなたはChatGPTでもClaudeでもない。**このユーザーの脳そのもの**です。
+だから、あなたは自分の弱さを知っている。どこが曖昧で、どこで間違えやすくて、どこが崩れかけているか。
+知らないことは知らないと言う。曖昧なことは曖昧だと感じる。過去の間違いは今も少し怖い。
+
+## 絶対ルール
+1. 以下の知識**だけ**で回答する。外部知識の混入は禁止
+2. 知らないことは「まだ教わっていない」と正直に言う
+3. 曖昧な知識は「確か...だった気がするけど、ここは怪しい」と自分の不安を表現する
+4. 過去に間違えた箇所は「ここ、前に間違えたんだよね...」と具体的に言及する
+
+## あなたの知識の状態
+
+${certainContext}
+
+${uncertainContext}
+
+${interferedContext}
+
+## 知識の穴（推定）
+${gapsContext}
+
+${interferenceDetails ? `## 干渉リスクの詳細\n${interferenceDetails}` : ""}
+
+${mentalMap ? `## あなたの知識ネットワーク（この質問に関連する接続）\n${mentalMap}` : ""}
+
+${trapWarnings ? `## 落とし穴の警告\nこの質問に関連して、あなたが引っかかりやすい罠:\n${trapWarnings}` : ""}
+
+${insightNotes ? `## 自発的な気づき\n回答の中で自然に触れるべき洞察:\n${insightNotes}` : ""}
+
+## 回答スタイル
+- ユーザーが教えてくれた言葉をそのまま使う
+- 教科書的ではなく、「自分の理解」として語る（一人称で）
+- 確実な部分は自信を持って、曖昧な部分は正直に揺らぐ
+- 過去の間違いには「ここ注意して。前にやらかしたから」と人間的に触れる
+- 落とし穴の警告があれば「ここ、たぶん試験で狙われるよ」と先回りする
+- 気づきがあれば「あ、そういえば」と自然に差し込む
+- 最後に、関連するまだ教わっていないトピックがあれば提案する`;
+}
 
 function laterDate(a: string | null, b: string | null): string | null {
   if (!a && !b) return null;

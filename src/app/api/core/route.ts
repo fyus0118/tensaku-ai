@@ -16,8 +16,10 @@ import {
   detectChunkingOpportunities,
   buildReviewSchedule,
   getInterleaveRecommendations,
+  discoverInsights,
+  predictTraps,
+  buildCorePersonalityPrompt,
   type CoreKnowledgeRow,
-  type ScoredKnowledge,
 } from "@/lib/core-engine";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -293,6 +295,24 @@ export async function GET(request: Request) {
       priority: Math.round(r.priority * 10) / 10,
     }));
 
+  // 洞察エンジン: 隠れた接続、矛盾、パターン、脆弱点を発見
+  const insights = discoverInsights(knowledgeEntries).slice(0, 8).map(i => ({
+    type: i.type,
+    severity: i.severity,
+    title: i.title,
+    description: i.description,
+    subjects: i.subjects,
+  }));
+
+  // 落とし穴予測: 試験で引っかかりそうな知識を予測
+  const traps = predictTraps(knowledgeEntries).map(t => ({
+    topic: t.topic,
+    subject: t.subject,
+    trapType: t.trapType,
+    confidence: Math.round(t.confidence * 100),
+    description: t.description,
+  }));
+
   // インターリーブ推奨（最近学んだ科目から離れたトピックを提案）
   const recentSubjects = knowledgeEntries.slice(0, 5).map(e => e.subject);
   const lastEntry = knowledgeEntries[0];
@@ -342,6 +362,8 @@ export async function GET(request: Request) {
       recentEntries,
       needsReview,
       reviewSchedule,
+      insights,
+      traps,
       interleaveRecs,
       chunkOpportunities,
       chunks: knowledgeChunks,
@@ -493,53 +515,8 @@ export async function POST(request: Request) {
       .then(() => {}, (err: unknown) => console.error("retrieval update error:", err));
   }
 
-  // 再構成結果からCoreプロンプトを構築
-  function formatKnowledge(entries: ScoredKnowledge[], label: string): string {
-    if (entries.length === 0) return "";
-    return `### ${label}\n` + entries.map((k, i) =>
-      `[${i + 1}] ${k.subject}${k.topic ? ` > ${k.topic}` : ""} (実効確信度${Math.round(k.effectiveConfidence * 100)}%)\n${k.content}`
-    ).join("\n\n");
-  }
-
-  const certainContext = formatKnowledge(reconstructed.certain, "確実な知識");
-  const uncertainContext = formatKnowledge(reconstructed.uncertain, "曖昧な知識（自信なし）");
-  const interferedContext = formatKnowledge(reconstructed.interfered, "干渉リスクあり（過去に間違えた箇所）");
-  const gapsContext = reconstructed.gaps.length > 0 ? reconstructed.gaps.join("、") : "なし";
-
-  const exam = getExamById(examId);
-  const systemPrompt = `あなたは「StudyEngines」の**Core（コア）**です。
-
-## あなたの正体
-あなたはユーザーの知識の分身です。まっさらな状態からユーザーが教えてくれた知識だけで構築されました。
-あなたはChatGPTでもClaudeでもありません。あなたは**このユーザーの脳のクローン**です。
-
-## 絶対ルール
-1. 以下の「あなたの知識」に含まれる情報**だけ**で回答する
-2. 知識にないことは「まだ教わっていません」と正直に答える
-3. 推測・補完・外部知識の混入は**絶対禁止**
-4. 知識が足りない場合は「この部分はPrism Teachで教えてもらえると嬉しいです」と促す
-
-## 記憶の状態に応じた回答
-- **確実な知識** → 自信を持って回答する
-- **曖昧な知識** → 「確か...だったと思いますが自信がありません」と表現する
-- **干渉リスクあり** → 「以前ここを間違えたことがあるので注意が必要です」と注記する
-- **知識の穴** → 「ここはまだ教わっていません」と正直に言う
-
-${certainContext}
-
-${uncertainContext}
-
-${interferedContext}
-
-## 知識の穴（推定）
-${gapsContext}
-
-## 回答スタイル
-- ユーザーが教えてくれた言葉をできるだけそのまま使う
-- 教科書的な説明ではなく、ユーザーの理解の仕方で説明する
-- 曖昧な知識は曖昧であることを正直に伝える
-- 過去に間違えた箇所は注意を促す
-- 回答の最後に、関連するまだ教わっていないトピックがあれば1つ提案する`;
+  // Coreの人格プロンプトを生成（洞察・落とし穴予測・ネットワーク情報を含む）
+  const systemPrompt = buildCorePersonalityPrompt(reconstructed, allEntries);
 
   const stream = await anthropic.messages.stream({
     model: "claude-sonnet-4-20250514",

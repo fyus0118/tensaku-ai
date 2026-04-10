@@ -10,7 +10,7 @@ import {
   ChevronDown, ChevronRight, AlertCircle, CheckCircle2,
   RefreshCw, TrendingUp, Clock, Target, ShieldCheck,
   ShieldAlert, ShieldQuestion, Layers, Activity, Zap,
-  BookOpen, Shuffle,
+  BookOpen, Shuffle, AlertTriangle, Lightbulb, Link2,
 } from "lucide-react";
 import { getExamById } from "@/lib/exams";
 
@@ -115,6 +115,22 @@ interface InterleaveRec {
   retentionStatus: string;
 }
 
+interface CoreInsight {
+  type: string;
+  severity: string;
+  title: string;
+  description: string;
+  subjects: string[];
+}
+
+interface TrapPrediction {
+  topic: string;
+  subject: string;
+  trapType: string;
+  confidence: number;
+  description: string;
+}
+
 interface CoreStats {
   totalEntries: number;
   totalCoverage: number;
@@ -123,6 +139,8 @@ interface CoreStats {
   recentEntries: RecentEntry[];
   needsReview: NeedsReviewEntry[];
   reviewSchedule: ReviewScheduleEntry[];
+  insights: CoreInsight[];
+  traps: TrapPrediction[];
   interleaveRecs: InterleaveRec[];
   chunkOpportunities: ChunkOpportunity[];
 }
@@ -373,6 +391,16 @@ function CoreContent() {
               <>
                 {/* 全体サマリー */}
                 <OverviewSection stats={stats} />
+
+                {/* 落とし穴予測 */}
+                {stats.traps && stats.traps.length > 0 && (
+                  <TrapsSection traps={stats.traps} examId={examId} />
+                )}
+
+                {/* Coreの気づき */}
+                {stats.insights && stats.insights.length > 0 && (
+                  <InsightsSection insights={stats.insights} />
+                )}
 
                 {/* アクションセンター（復習/インターリーブ/チャンク） */}
                 <ActionCenter stats={stats} examId={examId} />
@@ -837,6 +865,102 @@ function ReviewScheduleSection({ entries, examId }: { entries: ReviewScheduleEnt
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function trapTypeLabel(type: string): string {
+  switch (type) {
+    case "interference": return "干渉";
+    case "overconfidence": return "過信";
+    case "foundation_collapse": return "土台崩壊";
+    case "recency_illusion": return "新鮮さの幻想";
+    default: return type;
+  }
+}
+
+function trapTypeBg(type: string): string {
+  switch (type) {
+    case "interference": return "bg-red-100 text-red-700";
+    case "overconfidence": return "bg-amber-100 text-amber-700";
+    case "foundation_collapse": return "bg-purple-100 text-purple-700";
+    case "recency_illusion": return "bg-blue-100 text-blue-700";
+    default: return "bg-gray-100 text-gray-700";
+  }
+}
+
+function TrapsSection({ traps, examId }: { traps: TrapPrediction[]; examId: string }) {
+  return (
+    <div className="p-4 rounded-xl bg-red-50 border border-red-200 mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle className="w-4 h-4 text-red-600" />
+        <h3 className="text-sm font-bold text-red-800">あなたが引っかかる落とし穴</h3>
+        <span className="text-[10px] text-red-500">Coreがあなたの弱点から予測</span>
+      </div>
+      <div className="space-y-2">
+        {traps.map((trap, i) => (
+          <Link key={i} href={`/study/teach?exam=${examId}&subject=${encodeURIComponent(trap.subject)}&topic=${encodeURIComponent(trap.topic)}`}
+            className="block py-2 px-3 rounded-lg bg-white/60 hover:bg-white transition-colors group">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${trapTypeBg(trap.trapType)}`}>
+                {trapTypeLabel(trap.trapType)}
+              </span>
+              <span className="text-xs font-medium">{trap.subject} &gt; {trap.topic}</span>
+              <span className="text-[9px] text-red-500 font-bold ml-auto">{trap.confidence}%の確率で罠</span>
+            </div>
+            <p className="text-[10px] text-red-700 leading-relaxed">{trap.description}</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function insightIcon(type: string) {
+  switch (type) {
+    case "hidden_connection": return Link2;
+    case "contradiction": return AlertTriangle;
+    case "pattern": return AlertTriangle;
+    case "vulnerability": return AlertTriangle;
+    case "emergence": return Lightbulb;
+    default: return Lightbulb;
+  }
+}
+
+function insightBorder(severity: string): string {
+  switch (severity) {
+    case "critical": return "border-red-200 bg-red-50";
+    case "warning": return "border-amber-200 bg-amber-50";
+    default: return "border-indigo-200 bg-indigo-50";
+  }
+}
+
+function InsightsSection({ insights }: { insights: CoreInsight[] }) {
+  return (
+    <div className="mb-6 space-y-2">
+      <div className="flex items-center gap-2 mb-1">
+        <Lightbulb className="w-4 h-4 text-[var(--color-accent)]" />
+        <h3 className="text-sm font-bold text-[var(--color-text-secondary)]">Coreの気づき</h3>
+        <span className="text-[10px] text-[var(--color-text-muted)]">あなたの知識から発見した洞察</span>
+      </div>
+      {insights.map((insight, i) => {
+        const Icon = insightIcon(insight.type);
+        return (
+          <div key={i} className={`p-3 rounded-xl border ${insightBorder(insight.severity)}`}>
+            <div className="flex items-start gap-2">
+              <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
+                insight.severity === "critical" ? "text-red-500" :
+                insight.severity === "warning" ? "text-amber-500" :
+                "text-indigo-500"
+              }`} />
+              <div>
+                <p className="text-xs font-medium">{insight.title}</p>
+                <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5 leading-relaxed">{insight.description}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
