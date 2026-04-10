@@ -12,6 +12,9 @@ import {
   calcRetroactiveInterference,
   detectContradictions,
   detectAbstractionUpgrade,
+  executeAbstractionUpgrade,
+  detectChunkingOpportunities,
+  executeChunking,
   verifyAgainstRAG,
   selectRelatedProbeTargets,
   calcEffectiveConfidence,
@@ -429,11 +432,20 @@ export async function POST(request: Request) {
                 }).catch(() => {});
               }
 
-              // 抽象度昇格の検出
+              // 抽象度昇格の検出と実行
               if (!abstractionUpgrade) {
                 const fakeEntry = { topic, subject, id: existing?.id || "" } as CoreKnowledgeRow;
                 abstractionUpgrade = detectAbstractionUpgrade(fakeEntry, allExisting);
+                if (abstractionUpgrade) {
+                  executeAbstractionUpgrade(supabase, abstractionUpgrade).catch(() => {});
+                }
               }
+            }
+
+            // チャンキング自動実行（候補があれば統合）
+            const chunkCandidates = detectChunkingOpportunities(allExisting);
+            for (const candidate of chunkCandidates) {
+              executeChunking(supabase, user.id, examId, candidate).catch(() => {});
             }
 
             // 関連知識プローブ対象を選定

@@ -739,6 +739,69 @@ export function detectAbstractionUpgrade(
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 2m-b. チャンキング実行
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export async function executeChunking(
+  supabase: SupabaseClient,
+  userId: string,
+  examId: string,
+  candidate: ChunkCandidate,
+): Promise<{ chunkId: string } | null> {
+  const memberIds = candidate.entries.map(e => e.id);
+  const synthesisContent = candidate.entries
+    .map(e => `[${e.topic || e.subject}] ${e.content.slice(0, 200)}`)
+    .join("\n");
+
+  const embedding = await embedQuery(synthesisContent).catch(() => null);
+
+  const { data, error } = await supabase.from("knowledge_chunks").insert({
+    user_id: userId,
+    exam_id: examId,
+    subject: candidate.subject,
+    label: candidate.suggestedLabel,
+    member_ids: memberIds,
+    abstraction_level: 2,
+    synthesis_content: synthesisContent,
+    embedding,
+  }).select("id").single();
+
+  if (error || !data) return null;
+
+  // メンバー知識の operation_evidence.integrated を true に設定
+  for (const entry of candidate.entries) {
+    const newEvidence = { ...entry.operation_evidence, integrated: true };
+    await supabase.from("core_knowledge").update({
+      operation_evidence: newEvidence,
+    }).eq("id", entry.id);
+  }
+
+  return { chunkId: data.id };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 2n-b. 抽象度昇格実行
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export async function executeAbstractionUpgrade(
+  supabase: SupabaseClient,
+  upgrade: AbstractionUpgrade,
+): Promise<void> {
+  for (const entryId of upgrade.entryIds) {
+    const { data } = await supabase.from("core_knowledge")
+      .select("understanding_depth")
+      .eq("id", entryId)
+      .single();
+
+    if (data && data.understanding_depth < 6) {
+      await supabase.from("core_knowledge").update({
+        understanding_depth: data.understanding_depth + 1,
+      }).eq("id", entryId);
+    }
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 2o. 一貫性スコア
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
