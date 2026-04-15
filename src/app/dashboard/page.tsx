@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   LogOut,
-  Crown,
   MessageCircle,
   Target,
   PenTool,
@@ -46,9 +45,6 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single();
 
-  const isPro = profile?.plan === "pro";
-  const freeLeft =
-    (profile?.free_reviews_limit ?? 3) - (profile?.free_reviews_used ?? 0);
   const targetExam = profile?.target_exam
     ? getExamById(profile.target_exam)
     : null;
