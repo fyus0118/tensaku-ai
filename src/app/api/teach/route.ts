@@ -478,6 +478,68 @@ export async function POST(request: Request) {
           }
         }
 
+        // Core劣化: ERROR/MISSEDがあれば既存Coreの確信度・安定度を下げる
+        if (diagnostics.errors.length > 0 || diagnostics.missed.length > 0) {
+          try {
+            const errorCount = diagnostics.errors.length + diagnostics.missed.length;
+            const { data: matchingCore } = await supabase
+              .from("core_knowledge")
+              .select("id, confidence, stability, retrieval_fail_count, interference_count")
+              .eq("user_id", user.id)
+              .eq("exam_id", examId)
+              .eq("subject", subject)
+              .eq("topic", topic || "");
+
+            if (matchingCore && matchingCore.length > 0) {
+              for (const entry of matchingCore) {
+                const damageFactor = Math.max(0.4, 1 - errorCount * 0.15);
+                const newConfidence = Math.max(0.05, (entry.confidence || 0.5) * damageFactor);
+                const newStability = updateStability(
+                  entry.stability || 3.0,
+                  false,
+                  daysSince(null),
+                  3
+                );
+                await supabase.from("core_knowledge").update({
+                  confidence: newConfidence,
+                  stability: newStability,
+                  retrieval_fail_count: (entry.retrieval_fail_count || 0) + errorCount,
+                  interference_count: (entry.interference_count || 0) + 1,
+                }).eq("id", entry.id);
+              }
+            } else {
+              // 既存Coreがなくても間違いを記録（低確信度で新規作成）
+              const errorContents = [
+                ...diagnostics.errors.map(e => e.content),
+                ...diagnostics.missed.map(e => e.content),
+              ].filter(Boolean);
+              if (errorContents.length > 0) {
+                const now = new Date().toISOString();
+                await supabase.from("core_knowledge").insert({
+                  user_id: user.id,
+                  exam_id: examId,
+                  subject,
+                  topic: topic || null,
+                  content: errorContents.join("; "),
+                  source: "verified",
+                  understanding_depth: 0,
+                  confidence: 0.1,
+                  stability: 0.5,
+                  teach_count: 1,
+                  last_taught_at: now,
+                  operation_evidence: {
+                    recognized: false, reproduced: false, explained: false, applied: false, integrated: false,
+                  },
+                  retrieval_fail_count: errorCount,
+                  interference_count: 1,
+                });
+              }
+            }
+          } catch (err) {
+            console.error("core degradation error:", err);
+          }
+        }
+
         // 診断データを記録
         const hasDiagnostics = diagnostics.caught.length > 0 || diagnostics.missed.length > 0 ||
           diagnostics.errors.length > 0 || diagnostics.correct.length > 0 || diagnostics.verified.length > 0;
