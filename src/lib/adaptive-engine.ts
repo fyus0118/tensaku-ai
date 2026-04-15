@@ -331,7 +331,7 @@ export async function getPrediction(
 // ── 学習パス ─────────────────────────────────
 
 export interface StudyTask {
-  type: "practice" | "flashcard" | "review" | "chat";
+  type: "practice" | "flashcard" | "chat";
   subject: string;
   topic?: string;
   reason: string;

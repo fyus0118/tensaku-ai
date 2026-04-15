@@ -6,7 +6,6 @@ import {
   LogOut,
   MessageCircle,
   Target,
-  PenTool,
   ChevronRight,
   Layers,
   BarChart3,
@@ -48,14 +47,6 @@ export default async function DashboardPage() {
   const targetExam = profile?.target_exam
     ? getExamById(profile.target_exam)
     : null;
-
-  // 最近の学習履歴
-  const { data: recentReviews } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(5);
 
   // 合格予測 + 学習パス
   let prediction: PassPrediction | null = null;
@@ -231,7 +222,7 @@ export default async function DashboardPage() {
             {/* ── 仕上げ ── */}
             <div className="mb-4">
               <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">仕上げ — 弱点を潰す</h3>
-              <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 <Link href={`/study/weakness?exam=${targetExam.id}`}
                   className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-orange-500/30 transition-colors group flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
@@ -242,7 +233,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">苦手を集中攻撃</p>
                   </div>
                 </Link>
-<Link href={`/study/analytics?exam=${targetExam.id}`}
+                <Link href={`/study/analytics?exam=${targetExam.id}`}
                   className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
                     <BarChart3 className="w-5 h-5 text-[var(--color-accent)]" />
@@ -482,64 +473,6 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* Recent Activity */}
-        <section>
-          <h2 className="text-2xl font-black mb-6">学習履歴</h2>
-          {recentReviews && recentReviews.length > 0 ? (
-            <div className="space-y-3">
-              {recentReviews.map((review) => (
-                <div
-                  key={review.id}
-                  className="p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
-                      <PenTool className="w-5 h-5 text-[var(--color-accent)]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {review.document_type || "添削"}
-                        {review.target_university &&
-                          ` — ${review.target_university}`}
-                      </p>
-                      <p className="text-xs text-[var(--color-text-muted)]">
-                        {new Date(review.created_at).toLocaleDateString("ja-JP")}
-                      </p>
-                    </div>
-                  </div>
-                  {review.score !== null && (
-                    <span
-                      className="text-xl font-black"
-                      style={{
-                        color:
-                          review.score >= 80
-                            ? "var(--color-success)"
-                            : review.score >= 60
-                              ? "var(--color-warning)"
-                              : "var(--color-danger)",
-                      }}
-                    >
-                      {review.score}
-                      <span className="text-xs text-[var(--color-text-muted)]">
-                        /100
-                      </span>
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-12 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-center">
-              <BarChart3 className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
-              <p className="text-[var(--color-text-secondary)] mb-2">
-                まだ学習履歴がありません
-              </p>
-              <p className="text-sm text-[var(--color-text-muted)]">
-                上の試験を選んで、学習を始めましょう
-              </p>
-            </div>
-          )}
-        </section>
       </div>
     </main>
   );
