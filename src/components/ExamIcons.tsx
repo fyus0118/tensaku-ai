@@ -159,28 +159,6 @@ export function IconPharmacy({ className }: { className?: string }) {
   );
 }
 
-// 大学入試 — 卒業帽
-export function IconGraduation({ className }: { className?: string }) {
-  return (
-    <svg {...s} className={className}>
-      <path d="M12 3L1 9l11 6 9-4.91V17" />
-      <path d="M5 13.18v4.82a8.36 8.36 0 007 3 8.36 8.36 0 007-3v-4.82" />
-    </svg>
-  );
-}
-
-// 大学レポート — ペンと紙
-export function IconReport({ className }: { className?: string }) {
-  return (
-    <svg {...s} className={className}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <path d="M14 2v6h6" />
-      <path d="M8 13h8" />
-      <path d="M8 17h5" />
-      <path d="M8 9h2" />
-    </svg>
-  );
-}
 
 // 試験IDからアイコンコンポーネントを取得
 export const EXAM_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -200,6 +178,4 @@ export const EXAM_ICON_MAP: Record<string, React.ComponentType<{ className?: str
   "boki2": IconLedger,
   "boki3": IconLedger,
   "touroku-hanbai": IconPharmacy,
-  "daigaku-nyushi": IconGraduation,
-  "daigaku-report": IconReport,
 };

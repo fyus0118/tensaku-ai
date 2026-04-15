@@ -56,20 +56,6 @@ export const teachPostSchema = z.object({
     .optional(),
 });
 
-// ── Review ────────────────────────────────────
-export const reviewPostSchema = z.object({
-  reviewType: z.enum(["essay", "report"]),
-  content: z.string().min(1).max(50000),
-  documentType: z.string().max(100).optional(),
-  targetUniversity: z.string().max(200).optional(),
-  targetDepartment: z.string().max(200).optional(),
-  examType: z.string().max(100).optional(),
-  theme: z.string().max(500).optional(),
-  wordLimit: z.union([z.string().max(10), z.number().int().min(1).max(100000)]).optional(),
-  grade: z.string().max(50).optional(),
-  citationStyle: z.string().max(50).optional(),
-});
-
 // ── Flashcards POST ───────────────────────────
 export const flashcardsPostSchema = z.object({
   examId: z.string().min(1).max(100),

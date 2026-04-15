@@ -83,7 +83,6 @@ export default async function DashboardPage() {
     { label: "医療・看護・福祉系", desc: "医師・看護師・保育士・登録販売者など", ids: ["ishi", "kangoshi", "touroku-hanbai", "hoiku-shi"] },
     { label: "安全・環境系", desc: "危険物取扱者など", ids: ["kikenbutsu"] },
     { label: "語学系", desc: "TOEIC・英語など", ids: ["toeic"] },
-    { label: "大学・教育系", desc: "大学入試・レポートなど", ids: ["daigaku-nyushi", "daigaku-report"] },
   ];
 
   return (
@@ -243,17 +242,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">苦手を集中攻撃</p>
                   </div>
                 </Link>
-                <Link href={`/study/review?mode=essay&exam=${targetExam.id}`}
-                  className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
-                    <PenTool className="w-5 h-5 text-[var(--color-accent)]" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-sm flex items-center gap-1">Review <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]" /></h4>
-                    <p className="text-xs text-[var(--color-text-secondary)] truncate">答案を即時採点</p>
-                  </div>
-                </Link>
-                <Link href={`/study/analytics?exam=${targetExam.id}`}
+<Link href={`/study/analytics?exam=${targetExam.id}`}
                   className="p-5 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors group flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
                     <BarChart3 className="w-5 h-5 text-[var(--color-accent)]" />
@@ -384,19 +373,18 @@ export default async function DashboardPage() {
                   href={
                     task.type === "practice" ? `/study/practice?exam=${targetExam.id}` :
                     task.type === "flashcard" ? `/study/flashcards?exam=${targetExam.id}` :
-                    task.type === "chat" ? `/study/chat?exam=${targetExam.id}&subject=${encodeURIComponent(task.subject)}` :
-                    `/study/review?exam=${targetExam.id}`
+                    `/study/chat?exam=${targetExam.id}&subject=${encodeURIComponent(task.subject)}`
                   }
                   className="flex items-center gap-4 p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/30 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
                     <span className="text-lg">
-                      {task.type === "practice" ? <Target className="w-5 h-5 text-[var(--color-accent)]" /> : task.type === "flashcard" ? <Layers className="w-5 h-5 text-[var(--color-accent)]" /> : task.type === "chat" ? <MessageCircle className="w-5 h-5 text-[var(--color-accent)]" /> : <PenTool className="w-5 h-5 text-[var(--color-accent)]" />}
+                      {task.type === "practice" ? <Target className="w-5 h-5 text-[var(--color-accent)]" /> : task.type === "flashcard" ? <Layers className="w-5 h-5 text-[var(--color-accent)]" /> : <MessageCircle className="w-5 h-5 text-[var(--color-accent)]" />}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">
-                      {task.type === "practice" ? "Practice" : task.type === "flashcard" ? "Flashcards Review" : task.type === "chat" ? "Mentorに質問" : "Review"}
+                      {task.type === "practice" ? "Practice" : task.type === "flashcard" ? "Flashcards Review" : "Mentorに質問"}
                       {task.subject !== "復習" && ` — ${task.subject}`}
                       {task.topic && ` > ${task.topic}`}
                     </p>

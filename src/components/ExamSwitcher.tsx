@@ -15,7 +15,6 @@ const EXAM_GROUPS = [
   { label: "医療・看護・福祉系", ids: ["ishi", "kangoshi", "touroku-hanbai", "hoiku-shi"] },
   { label: "安全・環境系", ids: ["kikenbutsu"] },
   { label: "語学系", ids: ["toeic"] },
-  { label: "大学・教育系", ids: ["daigaku-nyushi", "daigaku-report"] },
 ];
 
 export default function ExamSwitcher({ currentExamId, currentExamName }: { currentExamId: string; currentExamName: string }) {
