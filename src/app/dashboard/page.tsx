@@ -99,20 +99,6 @@ export default async function DashboardPage() {
             Study<span className="text-[var(--color-accent)]">Engines</span>
           </Link>
           <div className="flex items-center gap-4">
-            {isPro ? (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-xs font-bold">
-                <Crown className="w-3 h-3" />
-                PRO
-              </span>
-            ) : (
-              <a
-                href="/api/stripe/checkout"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white text-xs font-bold hover:bg-[var(--color-accent-hover)] transition-colors"
-              >
-                <Crown className="w-3 h-3" />
-                プロにアップグレード
-              </a>
-            )}
             <Link
               href="/settings"
               className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors rounded-lg p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
@@ -135,23 +121,7 @@ export default async function DashboardPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Status */}
-        {!isPro && (
-          <div className="mb-8 p-4 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] flex items-center justify-between">
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              無料プラン — 残り
-              <span className="text-[var(--color-text)] font-bold mx-1">
-                {freeLeft}
-              </span>
-              回
-            </p>
-            <a
-              href="/api/stripe/checkout"
-              className="text-sm text-[var(--color-accent)] font-medium hover:underline"
-            >
-              無制限にする →
-            </a>
-          </div>
-        )}
+        {/* 課金UI一時非表示 */}
 
         {/* Study Modes (shown when exam is selected) */}
         {targetExam && (
@@ -503,18 +473,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">{user.email}</p>
-                <p className="text-xs text-[var(--color-text-muted)]">
-                  プラン: {isPro ? "プロ" : "無料"}
-                </p>
-              </div>
-              {isPro && (
-                <a
-                  href="/api/stripe/portal"
-                  className="text-sm text-[var(--color-accent)] hover:underline"
-                >
-                  サブスクリプション管理
-                </a>
-              )}
+                </div>
             </div>
             <div className="border-t border-[var(--color-border)] pt-4">
               <details className="group">

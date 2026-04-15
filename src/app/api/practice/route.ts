@@ -12,6 +12,8 @@ import {
   calcRetention,
   predictTraps,
   buildReviewSchedule,
+  simulateCascadeCollapse,
+  runCounterfactualScan,
   type CoreKnowledgeRow,
 } from "@/lib/core-engine";
 
@@ -41,12 +43,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "プロフィールが見つかりません" }, { status: 404 });
   }
 
-  if (profile.plan === "free" && profile.free_reviews_used >= profile.free_reviews_limit) {
-    return Response.json(
-      { error: "無料プランの利用回数を使い切りました。プロプランにアップグレードしてください。" },
-      { status: 403 }
-    );
-  }
+  // 課金ゲート一時無効化（無料公開中）
 
   const body = await request.json();
   const parsed = parseBody(practicePostSchema, body);
@@ -198,7 +195,46 @@ export async function POST(request: Request) {
         .eq("id", user.id);
     }
 
-    return Response.json({ question: parsed, examId, subject });
+    // Core先制介入: この問題に関連する崩壊リスク・脆弱性を検出
+    let coreIntervention: {
+      type: "cascade_warning" | "counterfactual_alert" | "foundation_risk";
+      message: string;
+    } | null = null;
+
+    if (allCore.length >= 5) {
+      const topicLower = (topic || subject).toLowerCase();
+
+      // 連鎖崩壊: このトピックが崩壊起点に含まれていないか
+      const cascades = simulateCascadeCollapse(allCore);
+      const relevantCascade = cascades.find(c =>
+        c.root.topic?.toLowerCase().includes(topicLower) ||
+        c.root.subject.toLowerCase().includes(topicLower) ||
+        c.casualties.some(cas => cas.topic?.toLowerCase().includes(topicLower))
+      );
+      if (relevantCascade && relevantCascade.severity > 0.3) {
+        coreIntervention = {
+          type: "cascade_warning",
+          message: `待って。この問題に関連する知識「${relevantCascade.root.topic || relevantCascade.root.subject}」の記憶が薄れてきてる。これを忘れると${relevantCascade.casualties.length}個の知識が巻き添えになる。先にそっちを確認しない？`,
+        };
+      }
+
+      // 反実仮想: この問題に関連する脆弱性
+      if (!coreIntervention) {
+        const vulns = runCounterfactualScan(allCore);
+        const relevantVuln = vulns.find(v =>
+          v.target.topic?.toLowerCase().includes(topicLower) ||
+          v.impacted.some(i => i.topic?.toLowerCase().includes(topicLower))
+        );
+        if (relevantVuln && relevantVuln.vulnerabilityScore > 0.5) {
+          coreIntervention = {
+            type: "counterfactual_alert",
+            message: `この問題に関連する「${relevantVuln.target.topic || relevantVuln.target.subject}」、確信度${Math.round(relevantVuln.target.confidence * 100)}%だけど、もし間違ってたら${relevantVuln.impacted.length}個の知識に影響する。慎重に。`,
+          };
+        }
+      }
+    }
+
+    return Response.json({ question: parsed, examId, subject, coreIntervention });
   } catch (err) {
     console.error("practice generation error:", err);
     return Response.json({ error: "問題生成中にエラーが発生しました" }, { status: 500 });

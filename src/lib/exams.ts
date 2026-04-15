@@ -9,7 +9,11 @@ export interface ExamCategory {
   examMonth: number | null;
   subjects: ExamSubject[];
   hasEssay: boolean; // 論述式があるか
+  comingSoon?: boolean; // 準備中
 }
+
+/** 教材準備済みの試験ID */
+export const AVAILABLE_EXAM_IDS = new Set(["takken"]);
 
 export interface ExamSubject {
   id: string;
@@ -3513,6 +3517,13 @@ export const EXAM_CATEGORIES: ExamCategory[] = [
     ],
   },
 ];
+
+// 教材未準備の試験にcomingSoonフラグを自動付与
+for (const exam of EXAM_CATEGORIES) {
+  if (!AVAILABLE_EXAM_IDS.has(exam.id)) {
+    exam.comingSoon = true;
+  }
+}
 
 export function getExamById(id: string): ExamCategory | undefined {
   return EXAM_CATEGORIES.find((e) => e.id === id);

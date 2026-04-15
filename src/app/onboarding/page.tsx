@@ -161,19 +161,27 @@ export default function OnboardingPage() {
                       return (
                         <button
                           key={exam.id}
-                          onClick={() => toggleExam(exam.id)}
+                          onClick={() => !exam.comingSoon && toggleExam(exam.id)}
+                          disabled={exam.comingSoon}
                           className={`p-4 rounded-xl border text-left transition-all relative ${
-                            isSelected
-                              ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
-                              : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
+                            exam.comingSoon
+                              ? "border-[var(--color-border)] bg-[var(--color-bg-card)] opacity-50 cursor-not-allowed"
+                              : isSelected
+                                ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 scale-[1.02]"
+                                : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-border-hover)]"
                           }`}
                         >
-                          {isSelected && (
+                          {exam.comingSoon && (
+                            <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-[var(--color-bg-secondary)] text-[9px] font-bold text-[var(--color-text-muted)]">
+                              Coming Soon
+                            </div>
+                          )}
+                          {isSelected && !exam.comingSoon && (
                             <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--color-accent)] text-white text-[10px] font-bold flex items-center justify-center">
                               {selectIndex + 1}
                             </div>
                           )}
-                          {IC && <IC className="w-6 h-6 text-[var(--color-accent)] mb-1" />}
+                          {IC && <IC className={`w-6 h-6 mb-1 ${exam.comingSoon ? "text-[var(--color-text-muted)]" : "text-[var(--color-accent)]"}`} />}
                           <p className="text-sm font-bold leading-tight">{exam.name}</p>
                           <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                             {exam.subjects.length}科目

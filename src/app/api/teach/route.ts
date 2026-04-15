@@ -21,6 +21,8 @@ import {
   getInterleaveRecommendations,
   predictTraps,
   discoverInsights,
+  simulateCascadeCollapse,
+  runCounterfactualScan,
   type CoreKnowledgeRow,
   type OperationEvidence,
 } from "@/lib/core-engine";
@@ -154,12 +156,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "プロフィールが見つかりません" }, { status: 404 });
   }
 
-  if (profile.plan === "free" && profile.free_reviews_used >= profile.free_reviews_limit) {
-    return Response.json(
-      { error: "無料プランの利用回数を使い切りました。プロプランにアップグレードしてください。" },
-      { status: 403 }
-    );
-  }
+  // 課金ゲート一時無効化（無料公開中）
 
   const body = await request.json();
   const parsed = parseBody(teachPostSchema, body);
@@ -519,6 +516,36 @@ export async function POST(request: Request) {
           ? getInterleaveRecommendations(subject, topic || null, allExisting, recentSubjects)
           : [];
 
+        // Core先制介入チェック
+        let coreIntervention: { type: string; message: string } | null = null;
+        if (allExisting.length >= 5) {
+          const topicLower = (topic || subject).toLowerCase();
+          const cascades = simulateCascadeCollapse(allExisting);
+          const relevantCascade = cascades.find(c =>
+            c.root.topic?.toLowerCase().includes(topicLower) ||
+            c.casualties.some(cas => cas.topic?.toLowerCase().includes(topicLower))
+          );
+          if (relevantCascade && relevantCascade.severity > 0.3) {
+            coreIntervention = {
+              type: "cascade_warning",
+              message: `待って、この話題に関連する「${relevantCascade.root.topic || relevantCascade.root.subject}」の記憶が薄れてる。${relevantCascade.casualties.length}個の知識が巻き添えになるから、先にそっちを確認しない？`,
+            };
+          }
+          if (!coreIntervention) {
+            const vulns = runCounterfactualScan(allExisting);
+            const relevantVuln = vulns.find(v =>
+              v.target.topic?.toLowerCase().includes(topicLower) ||
+              v.impacted.some(i => i.topic?.toLowerCase().includes(topicLower))
+            );
+            if (relevantVuln && relevantVuln.vulnerabilityScore > 0.5) {
+              coreIntervention = {
+                type: "counterfactual_alert",
+                message: `この話題に関連する「${relevantVuln.target.topic || relevantVuln.target.subject}」、確信度${Math.round(relevantVuln.target.confidence * 100)}%だけど、もし間違ってたら${relevantVuln.impacted.length}個の知識に影響する。慎重に確認して。`,
+              };
+            }
+          }
+        }
+
         // 診断データをフロントに送信（Brain Model拡張版）
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({
@@ -530,6 +557,7 @@ export async function POST(request: Request) {
               verified: diagnostics.verified.length,
               level: diagnostics.maxLevel,
               coreUpdated: coreEntries.length,
+              coreIntervention,
               probeTargets: probeTargets.map(t => ({
                 topic: t.topic,
                 effectiveConfidence: Math.round(calcEffectiveConfidence(t) * 100),

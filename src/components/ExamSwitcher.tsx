@@ -112,15 +112,18 @@ export default function ExamSwitcher({ currentExamId, currentExamName }: { curre
                   return (
                     <button
                       key={exam.id}
-                      onClick={() => setPreview(isPreviewing ? null : exam)}
+                      onClick={() => !exam.comingSoon && setPreview(isPreviewing ? null : exam)}
+                      disabled={exam.comingSoon}
                       className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
+                        exam.comingSoon ? "text-[var(--color-text-muted)] cursor-not-allowed opacity-60" :
                         isPreviewing ? "bg-[var(--color-accent)]/5 text-[var(--color-accent)] font-bold" :
                         isCurrent ? "text-[var(--color-accent)] font-bold" :
                         "text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)]"
                       }`}
                     >
                       {exam.name}
-                      {isCurrent && !isPreviewing && <span className="text-[10px] text-[var(--color-accent)]">選択中</span>}
+                      {exam.comingSoon && <span className="px-1.5 py-0.5 rounded-full bg-[var(--color-bg-secondary)] text-[9px] font-bold text-[var(--color-text-muted)]">Coming Soon</span>}
+                      {isCurrent && !isPreviewing && !exam.comingSoon && <span className="text-[10px] text-[var(--color-accent)]">選択中</span>}
                     </button>
                   );
                 })}

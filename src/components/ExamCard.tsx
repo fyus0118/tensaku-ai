@@ -88,15 +88,23 @@ export default function ExamCard({ exam, isCurrent }: { exam: ExamCategory; isCu
   return (
     <>
       <button
-        onClick={() => setShowDetail(true)}
-        className={`p-4 rounded-xl border transition-colors hover:border-[var(--color-accent)]/30 text-left ${
-          isCurrent
-            ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
-            : "border-[var(--color-border)] bg-[var(--color-bg-card)]"
+        onClick={() => !exam.comingSoon && setShowDetail(true)}
+        disabled={exam.comingSoon}
+        className={`p-4 rounded-xl border transition-colors text-left relative ${
+          exam.comingSoon
+            ? "border-[var(--color-border)] bg-[var(--color-bg-card)] opacity-50 cursor-not-allowed"
+            : isCurrent
+              ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5 hover:border-[var(--color-accent)]/30"
+              : "border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-accent)]/30"
         }`}
       >
-        <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center mb-2">
-          <Icon className="w-4 h-4 text-[var(--color-accent)]" />
+        {exam.comingSoon && (
+          <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-[var(--color-bg-secondary)] text-[9px] font-bold text-[var(--color-text-muted)]">
+            Coming Soon
+          </div>
+        )}
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${exam.comingSoon ? "bg-[var(--color-bg-secondary)]" : "bg-[var(--color-accent)]/10"}`}>
+          <Icon className={`w-4 h-4 ${exam.comingSoon ? "text-[var(--color-text-muted)]" : "text-[var(--color-accent)]"}`} />
         </div>
         <p className="text-sm font-bold leading-tight">{exam.name}</p>
         <p className="text-xs text-[var(--color-text-muted)] mt-1">

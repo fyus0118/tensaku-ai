@@ -63,13 +63,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "プロフィールが見つかりません" }, { status: 404 });
   }
 
-  // 無料プランの回数チェック
-  if (profile.plan === "free" && profile.free_reviews_used >= profile.free_reviews_limit) {
-    return Response.json(
-      { error: "無料プランの利用回数を使い切りました。プロプランにアップグレードしてください。" },
-      { status: 403 }
-    );
-  }
+  // 課金ゲート一時無効化（無料公開中）
 
   const body = await request.json();
   const parsed = parseBody(chatPostSchema, body);
