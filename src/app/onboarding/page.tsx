@@ -24,10 +24,10 @@ const SAVING_MESSAGES = [
 ];
 
 const EXAM_GROUPS = [
+  { label: "不動産・建築系", ids: ["takken", "kenchiku-shi", "mankan", "chintai"] },
   { label: "法律系", ids: ["yobi-shihou", "shihou-shiken", "shihou-shoshi", "gyousei-shoshi", "sharoshi", "benri-shi", "business-law", "chizai", "kojin-joho"] },
   { label: "会計・財務系", ids: ["kounin-kaikeishi", "zeirishi", "boki2", "boki3", "fp2", "gaimuin", "kashikin"] },
   { label: "経営・コンサルティング系", ids: ["shindan-shi", "gijutsu-shi", "hanbaishi", "mental-health"] },
-  { label: "不動産・建築系", ids: ["takken", "kenchiku-shi", "mankan", "chintai"] },
   { label: "IT・情報処理系", ids: ["it-passport", "sg", "kihon-jouhou", "ap", "st", "nw", "db", "aws", "python3"] },
   { label: "公務員系", ids: ["koumuin"] },
   { label: "医療・看護・福祉系", ids: ["ishi", "kangoshi", "touroku-hanbai", "hoiku-shi"] },

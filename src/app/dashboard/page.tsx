@@ -65,10 +65,10 @@ export default async function DashboardPage() {
   const EXAM_ICONS = EXAM_ICON_MAP;
 
   const examGroups = [
+    { label: "不動産・建築系", desc: "宅建士・建築士・マンション管理など", ids: ["takken", "kenchiku-shi", "mankan", "chintai"] },
     { label: "法律系", desc: "弁護士・司法書士・行政書士など", ids: ["yobi-shihou", "shihou-shiken", "shihou-shoshi", "gyousei-shoshi", "sharoshi", "benri-shi", "business-law", "chizai", "kojin-joho"] },
     { label: "会計・財務系", desc: "会計士・税理士・簿記・FPなど", ids: ["kounin-kaikeishi", "zeirishi", "boki2", "boki3", "fp2", "gaimuin", "kashikin"] },
     { label: "経営・コンサルティング系", desc: "診断士・技術士・販売士など", ids: ["shindan-shi", "gijutsu-shi", "hanbaishi", "mental-health"] },
-    { label: "不動産・建築系", desc: "宅建士・建築士・マンション管理など", ids: ["takken", "kenchiku-shi", "mankan", "chintai"] },
     { label: "IT・情報処理系", desc: "基本情報・応用情報・高度試験・クラウドなど", ids: ["it-passport", "sg", "kihon-jouhou", "ap", "st", "nw", "db", "aws", "python3"] },
     { label: "公務員系", desc: "国家一般職・地方上級など", ids: ["koumuin"] },
     { label: "医療・看護・福祉系", desc: "医師・看護師・保育士・登録販売者など", ids: ["ishi", "kangoshi", "touroku-hanbai", "hoiku-shi"] },
