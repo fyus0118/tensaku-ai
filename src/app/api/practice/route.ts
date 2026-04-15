@@ -12,10 +12,9 @@ import {
   calcRetention,
   predictTraps,
   buildReviewSchedule,
-  simulateCascadeCollapse,
-  runCounterfactualScan,
   type CoreKnowledgeRow,
 } from "@/lib/core-engine";
+import { simulateCascadeCollapse, runCounterfactualScan } from "@/lib/core-engine-analysis";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 

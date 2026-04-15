@@ -241,7 +241,7 @@ export function updateStability(
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // O(1)参照用のインデックス（allEntries.find O(n)を排除）
-function buildEntryIndex(entries: CoreKnowledgeRow[]): Map<string, CoreKnowledgeRow> {
+export function buildEntryIndex(entries: CoreKnowledgeRow[]): Map<string, CoreKnowledgeRow> {
   const map = new Map<string, CoreKnowledgeRow>();
   for (const e of entries) map.set(e.id, e);
   return map;
@@ -251,7 +251,7 @@ function buildEntryIndex(entries: CoreKnowledgeRow[]): Map<string, CoreKnowledge
 let _cachedIndex: Map<string, CoreKnowledgeRow> | null = null;
 let _cachedEntries: CoreKnowledgeRow[] | null = null;
 
-function getEntryIndex(allEntries: CoreKnowledgeRow[]): Map<string, CoreKnowledgeRow> {
+export function getEntryIndex(allEntries: CoreKnowledgeRow[]): Map<string, CoreKnowledgeRow> {
   if (_cachedEntries === allEntries && _cachedIndex) return _cachedIndex;
   _cachedIndex = buildEntryIndex(allEntries);
   _cachedEntries = allEntries;
@@ -387,7 +387,7 @@ export function calculateBaseConfidence(source: "correct" | "verified", level: n
 // 2e. 想起の再構成
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function cosineSimilarity(a: number[], b: number[]): number {
+export function cosineSimilarity(a: number[], b: number[]): number {
   if (!a || !b || a.length !== b.length) return 0;
   let dotProduct = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
@@ -1555,7 +1555,343 @@ ${insightNotes ? `## 自発的な気づき\n回答の中で自然に触れるべ
 - 最後に、関連するまだ教わっていないトピックがあれば提案する`;
 }
 
-function laterDate(a: string | null, b: string | null): string | null {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 4. 予測的崩壊シミュレーション (#2)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface CascadeCollapseResult {
+  /** 崩壊の起点となる知識 */
+  root: { id: string; topic: string | null; subject: string; currentRetention: number };
+  /** 連鎖的に崩壊する知識群（直接＋間接の依存先） */
+  casualties: {
+    id: string;
+    topic: string | null;
+    subject: string;
+    depth: number; // rootからの距離
+    currentRetention: number;
+    effectiveConfidence: number;
+  }[];
+  /** 復習期限: この日までに復習しないと連鎖崩壊が始まる */
+  deadline: Date | null;
+  /** 危険度 (0-1) */
+  severity: number;
+  /** 人間が読める警告文 */
+  warning: string;
+}
+
+/**
+ * 依存グラフを辿って連鎖崩壊をシミュレーションする。
+ *
+ * ある知識が忘却閾値を下回ると、それに depends_on している知識の
+ * effective_confidence が連鎖的に低下する。この影響範囲を算出し、
+ * 「○○を忘れると△△個の知識が巻き添えになる。□月□日までに復習推奨」
+ * という警告を生成する。
+ */
+export function simulateCascadeCollapse(
+  allEntries: CoreKnowledgeRow[],
+): CascadeCollapseResult[] {
+  const index = getEntryIndex(allEntries);
+
+  // 逆引きインデックス: entryId → そのentryに依存しているentryのリスト
+  const dependents = new Map<string, CoreKnowledgeRow[]>();
+  for (const entry of allEntries) {
+    // prerequisite_ids: このentryの前提となるentry
+    if (entry.prerequisite_ids) {
+      for (const prereqId of entry.prerequisite_ids) {
+        const list = dependents.get(prereqId) || [];
+        list.push(entry);
+        dependents.set(prereqId, list);
+      }
+    }
+    // connection_strengths with depends_on
+    for (const [targetId, conn] of Object.entries(entry.connection_strengths)) {
+      if (conn.type === "depends_on") {
+        const list = dependents.get(targetId) || [];
+        list.push(entry);
+        dependents.set(targetId, list);
+      }
+    }
+  }
+
+  const results: CascadeCollapseResult[] = [];
+
+  // 崩壊リスクのある知識（retention < 0.5 かつ 誰かが依存している）
+  for (const entry of allEntries) {
+    const deps = dependents.get(entry.id);
+    if (!deps || deps.length === 0) continue;
+
+    const lastReinforced = laterDate(entry.last_taught_at, entry.last_retrieved_at);
+    const retention = calcRetention(lastReinforced, entry.stability);
+
+    // まだ十分覚えているものはスキップ（ただし期限は計算する）
+    if (retention > 0.7) continue;
+
+    // BFSで連鎖崩壊を辿る
+    const casualties: CascadeCollapseResult["casualties"] = [];
+    const visited = new Set<string>([entry.id]);
+    let frontier = [{ entries: deps, depth: 1 }];
+
+    while (frontier.length > 0) {
+      const nextFrontier: typeof frontier = [];
+      for (const { entries: currentEntries, depth } of frontier) {
+        for (const dep of currentEntries) {
+          if (visited.has(dep.id)) continue;
+          visited.add(dep.id);
+
+          const depRetention = calcRetention(
+            laterDate(dep.last_taught_at, dep.last_retrieved_at),
+            dep.stability
+          );
+          const ec = calcEffectiveConfidence(dep, allEntries);
+
+          casualties.push({
+            id: dep.id,
+            topic: dep.topic,
+            subject: dep.subject,
+            depth,
+            currentRetention: depRetention,
+            effectiveConfidence: ec,
+          });
+
+          // このentryにさらに依存しているものを辿る
+          const nextDeps = dependents.get(dep.id);
+          if (nextDeps && nextDeps.length > 0 && depth < 5) {
+            nextFrontier.push({ entries: nextDeps, depth: depth + 1 });
+          }
+        }
+      }
+      frontier = nextFrontier;
+    }
+
+    if (casualties.length === 0) continue;
+
+    // 復習期限: retentionが0.3まで落ちる日
+    const deadline = calcOptimalReviewDate(lastReinforced, entry.stability, 0.3);
+
+    // 危険度: 巻き添え数 × 崩壊の深さ × (1 - retention)
+    const maxDepth = Math.max(...casualties.map(c => c.depth));
+    const severity = Math.min(1.0,
+      (casualties.length / 10) * 0.4 +
+      (maxDepth / 5) * 0.3 +
+      (1 - retention) * 0.3
+    );
+
+    const deadlineStr = deadline
+      ? `${deadline.getMonth() + 1}月${deadline.getDate()}日`
+      : "不明";
+
+    const topicNames = casualties
+      .slice(0, 3)
+      .map(c => c.topic || c.subject)
+      .join("、");
+    const moreCount = casualties.length > 3 ? `他${casualties.length - 3}個` : "";
+
+    results.push({
+      root: {
+        id: entry.id,
+        topic: entry.topic,
+        subject: entry.subject,
+        currentRetention: retention,
+      },
+      casualties,
+      deadline,
+      severity,
+      warning: `「${entry.topic || entry.subject}」を忘れると${casualties.length}個の知識が巻き添えになる（${topicNames}${moreCount ? "、" + moreCount : ""}）。${deadlineStr}までに復習推奨。`,
+    });
+  }
+
+  return results
+    .sort((a, b) => b.severity - a.severity)
+    .slice(0, 10);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 5. 反実仮想テスト (#4)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface CounterfactualResult {
+  /** テスト対象の知識 */
+  target: { id: string; topic: string | null; subject: string; confidence: number };
+  /** もしこの知識が間違っていたら影響を受ける知識 */
+  impacted: {
+    id: string;
+    topic: string | null;
+    subject: string;
+    relationType: "depends_on" | "related" | "example_of";
+    currentEC: number;
+    /** この知識が崩れた場合の推定EC */
+    projectedEC: number;
+  }[];
+  /** 脆弱性スコア: この知識が間違っていた場合のダメージ (0-1) */
+  vulnerabilityScore: number;
+  /** 人間が読める報告文 */
+  report: string;
+}
+
+/**
+ * 反実仮想テスト: 「もしこの知識が間違っていたら、他の何が崩れるか？」
+ *
+ * confidence上位の知識を対象に、依存グラフと接続を辿って影響範囲を算出。
+ * ユーザーが信頼しきっている知識ほど、間違っていた場合のダメージが大きい。
+ * LLMは使わず、グラフ走査のみで実行（API費用ゼロ）。
+ */
+export function runCounterfactualScan(
+  allEntries: CoreKnowledgeRow[],
+): CounterfactualResult[] {
+  const index = getEntryIndex(allEntries);
+  const results: CounterfactualResult[] = [];
+
+  // confidence上位 or 多くの知識に依存されている知識を対象に
+  const candidates = allEntries
+    .filter(e => {
+      // 誰かの前提になっている or 接続が多い
+      const isDependedOn = allEntries.some(other =>
+        other.prerequisite_ids?.includes(e.id) ||
+        Object.entries(other.connection_strengths).some(([id, c]) => id === e.id && c.type === "depends_on")
+      );
+      const hasHighConfidence = e.confidence > 0.7;
+      return isDependedOn || (hasHighConfidence && Object.keys(e.connection_strengths).length >= 2);
+    })
+    .slice(0, 30); // 計算コスト抑制
+
+  for (const target of candidates) {
+    const impacted: CounterfactualResult["impacted"] = [];
+
+    // 1. prerequisite_idsでこのentryを参照しているもの
+    for (const entry of allEntries) {
+      if (entry.id === target.id) continue;
+      if (entry.prerequisite_ids?.includes(target.id)) {
+        const ec = calcEffectiveConfidence(entry, allEntries);
+        // targetが間違っていたら → prerequisiteHealth = 0 → EC激減
+        const projectedEC = ec * 0.3; // prerequisiteが完全崩壊
+        impacted.push({
+          id: entry.id,
+          topic: entry.topic,
+          subject: entry.subject,
+          relationType: "depends_on",
+          currentEC: ec,
+          projectedEC,
+        });
+      }
+    }
+
+    // 2. connection_strengthsでdepends_onしているもの
+    for (const entry of allEntries) {
+      if (entry.id === target.id) continue;
+      if (impacted.some(i => i.id === entry.id)) continue;
+      const conn = entry.connection_strengths[target.id];
+      if (conn && (conn.type === "depends_on" || conn.type === "related")) {
+        const ec = calcEffectiveConfidence(entry, allEntries);
+        const factor = conn.type === "depends_on" ? 0.3 : 0.6;
+        const projectedEC = ec * factor;
+        impacted.push({
+          id: entry.id,
+          topic: entry.topic,
+          subject: entry.subject,
+          relationType: conn.type as "depends_on" | "related",
+          currentEC: ec,
+          projectedEC,
+        });
+      }
+    }
+
+    // 3. example_ofで参照しているもの
+    for (const entry of allEntries) {
+      if (entry.id === target.id) continue;
+      if (impacted.some(i => i.id === entry.id)) continue;
+      const conn = entry.connection_strengths[target.id];
+      if (conn && conn.type === "example_of") {
+        const ec = calcEffectiveConfidence(entry, allEntries);
+        impacted.push({
+          id: entry.id,
+          topic: entry.topic,
+          subject: entry.subject,
+          relationType: "example_of",
+          currentEC: ec,
+          projectedEC: ec * 0.5,
+        });
+      }
+    }
+
+    if (impacted.length === 0) continue;
+
+    // 脆弱性スコア: 影響数 × 信頼度 × EC低下の大きさ
+    const avgDrop = impacted.reduce((sum, i) => sum + (i.currentEC - i.projectedEC), 0) / impacted.length;
+    const vulnerabilityScore = Math.min(1.0,
+      (impacted.length / 8) * 0.4 +
+      target.confidence * 0.3 +
+      avgDrop * 0.3
+    );
+
+    const dependsOnCount = impacted.filter(i => i.relationType === "depends_on").length;
+    const topicNames = impacted.slice(0, 3).map(i => i.topic || i.subject).join("、");
+
+    results.push({
+      target: {
+        id: target.id,
+        topic: target.topic,
+        subject: target.subject,
+        confidence: target.confidence,
+      },
+      impacted,
+      vulnerabilityScore,
+      report: `「${target.topic || target.subject}」（確信度${Math.round(target.confidence * 100)}%）がもし間違っていたら、${impacted.length}個の知識が影響を受ける（${topicNames}）。うち${dependsOnCount}個は直接依存しており、修復不能になる可能性がある。`,
+    });
+  }
+
+  return results
+    .sort((a, b) => b.vulnerabilityScore - a.vulnerabilityScore)
+    .slice(0, 10);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 6. Coreプロアクティブ報告（ログイン時に実行）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface CoreProactiveReport {
+  cascadeWarnings: CascadeCollapseResult[];
+  counterfactualAlerts: CounterfactualResult[];
+  generatedAt: string;
+  summary: string;
+}
+
+/**
+ * ログイン時に1回実行。Coreが「寝てる間に考えてた」結果を返す。
+ * LLM不要、グラフ計算のみ。結果は24時間キャッシュ可能。
+ */
+export function generateProactiveReport(
+  allEntries: CoreKnowledgeRow[],
+): CoreProactiveReport {
+  const cascadeWarnings = simulateCascadeCollapse(allEntries);
+  const counterfactualAlerts = runCounterfactualScan(allEntries);
+
+  const urgentCascades = cascadeWarnings.filter(c => c.severity > 0.5);
+  const criticalVulns = counterfactualAlerts.filter(c => c.vulnerabilityScore > 0.6);
+
+  let summary = "";
+  if (urgentCascades.length === 0 && criticalVulns.length === 0) {
+    summary = "今のところ、知識の構造に大きな問題は見つからなかった。いい感じ。";
+  } else {
+    const parts: string[] = [];
+    if (urgentCascades.length > 0) {
+      const totalCasualties = urgentCascades.reduce((sum, c) => sum + c.casualties.length, 0);
+      parts.push(`${urgentCascades.length}箇所で連鎖崩壊のリスクがある（計${totalCasualties}個の知識が巻き添え）`);
+    }
+    if (criticalVulns.length > 0) {
+      parts.push(`${criticalVulns.length}個の知識に構造的な脆弱性を発見した`);
+    }
+    summary = `考えてたんだけど、${parts.join("。さらに、")}。詳細を確認して。`;
+  }
+
+  return {
+    cascadeWarnings,
+    counterfactualAlerts,
+    generatedAt: new Date().toISOString(),
+    summary,
+  };
+}
+
+export function laterDate(a: string | null, b: string | null): string | null {
   if (!a && !b) return null;
   if (!a) return b;
   if (!b) return a;

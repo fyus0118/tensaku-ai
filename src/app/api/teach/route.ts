@@ -21,11 +21,10 @@ import {
   getInterleaveRecommendations,
   predictTraps,
   discoverInsights,
-  simulateCascadeCollapse,
-  runCounterfactualScan,
   type CoreKnowledgeRow,
   type OperationEvidence,
 } from "@/lib/core-engine";
+import { simulateCascadeCollapse, runCounterfactualScan } from "@/lib/core-engine-analysis";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 

@@ -6,12 +6,11 @@ import { getWeakPoints } from "@/lib/adaptive-engine";
 import { teachPostSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import {
-  simulateCascadeCollapse,
-  runCounterfactualScan,
   calcEffectiveConfidence,
   calcRetention,
   type CoreKnowledgeRow,
 } from "@/lib/core-engine";
+import { simulateCascadeCollapse, runCounterfactualScan } from "@/lib/core-engine-analysis";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 

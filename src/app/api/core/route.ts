@@ -21,6 +21,7 @@ import {
   buildCorePersonalityPrompt,
   type CoreKnowledgeRow,
 } from "@/lib/core-engine";
+import { generateProactiveReport } from "@/lib/core-engine-analysis";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -331,6 +332,54 @@ export async function GET(request: Request) {
       }))
     : [];
 
+  // プロアクティブ報告: 連鎖崩壊シミュレーション + 反実仮想テスト
+  const proactiveReport = generateProactiveReport(knowledgeEntries);
+
+  // 依存グラフデータ（ビジュアライゼーション用）
+  const cascadeResults = proactiveReport.cascadeWarnings;
+  const collapsingIds = new Set(cascadeResults.flatMap(c => [c.root.id, ...c.casualties.map(cas => cas.id)]));
+
+  const graphNodes = knowledgeEntries.slice(0, 100).map(e => {
+    const lastReinforced = laterDate(e.last_taught_at, e.last_retrieved_at);
+    const retention = calcRetention(lastReinforced, e.stability);
+    const ec = calcEffectiveConfidence(e, knowledgeEntries);
+    const retStatus = getRetentionStatus(retention);
+    const isCollapsing = collapsingIds.has(e.id);
+    const cascadeRoot = cascadeResults.find(c => c.root.id === e.id);
+
+    return {
+      id: e.id,
+      topic: e.topic || e.subject,
+      subject: e.subject,
+      effectiveConfidence: Math.round(ec * 100),
+      retention: Math.round(retention * 100),
+      retentionStatus: retStatus,
+      depth: e.understanding_depth,
+      isCollapsing,
+      isCascadeRoot: !!cascadeRoot,
+      casualtyCount: cascadeRoot?.casualties.length || 0,
+    };
+  });
+
+  const graphEdges: { source: string; target: string; type: string; strength: number }[] = [];
+  const nodeIds = new Set(graphNodes.map(n => n.id));
+  for (const entry of knowledgeEntries.slice(0, 100)) {
+    // prerequisite_ids
+    if (entry.prerequisite_ids) {
+      for (const prereqId of entry.prerequisite_ids) {
+        if (nodeIds.has(prereqId)) {
+          graphEdges.push({ source: prereqId, target: entry.id, type: "depends_on", strength: 1.0 });
+        }
+      }
+    }
+    // connection_strengths
+    for (const [targetId, conn] of Object.entries(entry.connection_strengths)) {
+      if (nodeIds.has(targetId) && conn.strength > 0.3) {
+        graphEdges.push({ source: entry.id, target: targetId, type: conn.type, strength: conn.strength });
+      }
+    }
+  }
+
   // 最近のCore蓄積（タイムライン用）
   const recentEntries = knowledgeEntries.slice(0, 20).map(e => ({
     subject: e.subject,
@@ -367,6 +416,40 @@ export async function GET(request: Request) {
       interleaveRecs,
       chunkOpportunities,
       chunks: knowledgeChunks,
+      proactiveReport: {
+        summary: proactiveReport.summary,
+        cascadeWarnings: proactiveReport.cascadeWarnings.map(c => ({
+          rootTopic: c.root.topic || c.root.subject,
+          rootRetention: Math.round(c.root.currentRetention * 100),
+          casualtyCount: c.casualties.length,
+          casualties: c.casualties.slice(0, 5).map(cas => ({
+            topic: cas.topic || cas.subject,
+            depth: cas.depth,
+            effectiveConfidence: Math.round(cas.effectiveConfidence * 100),
+          })),
+          deadline: c.deadline?.toISOString() || null,
+          severity: Math.round(c.severity * 100),
+          warning: c.warning,
+        })),
+        counterfactualAlerts: proactiveReport.counterfactualAlerts.map(cf => ({
+          targetTopic: cf.target.topic || cf.target.subject,
+          targetConfidence: Math.round(cf.target.confidence * 100),
+          impactedCount: cf.impacted.length,
+          impacted: cf.impacted.slice(0, 5).map(i => ({
+            topic: i.topic || i.subject,
+            relationType: i.relationType,
+            currentEC: Math.round(i.currentEC * 100),
+            projectedEC: Math.round(i.projectedEC * 100),
+          })),
+          vulnerabilityScore: Math.round(cf.vulnerabilityScore * 100),
+          report: cf.report,
+        })),
+        generatedAt: proactiveReport.generatedAt,
+      },
+      knowledgeGraph: {
+        nodes: graphNodes,
+        edges: graphEdges,
+      },
     },
   });
 }
@@ -537,7 +620,34 @@ export async function POST(request: Request) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
           }
         }
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+        // 生成的再構成: 回答を記録し、過去の再構成との差分を検出
+        const reconstructionRecord = {
+          query: question.slice(0, 200),
+          response_summary: fullResult.slice(0, 500),
+          at: now,
+          topics_used: allRetrieved.map(e => e.topic).filter(Boolean).slice(0, 10),
+        };
+
+        // 関連する知識のretrieval_contextsに再構成記録を追加
+        // 同じ知識が異なる文脈で呼び出されるたびに、異なる説明が生成される
+        // → その差分自体が「知識の豊かさ」の指標になる
+        for (const entry of allRetrieved.slice(0, 5)) {
+          const existingContexts = entry.retrieval_contexts || [];
+          const pastResponses = existingContexts
+            .filter((ctx: { context: string }) => ctx.context !== question.slice(0, 200))
+            .slice(-3);
+
+          if (pastResponses.length > 0) {
+            // 過去に異なる文脈で想起されたことがある → 再構成の多様性を記録
+            const reconstructionDiversity = pastResponses.length + 1;
+            supabase.from("core_knowledge").update({
+              teach_count: Math.max(entry.teach_count, reconstructionDiversity),
+            }).eq("id", entry.id)
+              .then(() => {}, (err: unknown) => console.error("reconstruction diversity update error:", err));
+          }
+        }
+
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, reconstructionRecord })}\n\n`));
         controller.close();
       } catch (err) {
         console.error("core streaming error:", err);
