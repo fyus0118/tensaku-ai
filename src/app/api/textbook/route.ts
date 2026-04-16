@@ -28,7 +28,20 @@ export async function GET(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     const fullContent = (data || []).map((d) => d.content).join("\n\n");
-    return NextResponse.json({ topic, content: fullContent, chunks: data?.length || 0 });
+
+    const { data: illustrations } = await supabase
+      .from("material_illustrations")
+      .select("image_url, caption, position, sort_order")
+      .eq("exam_id", examId)
+      .eq("topic", topic)
+      .order("sort_order", { ascending: true });
+
+    return NextResponse.json({
+      topic,
+      content: fullContent,
+      chunks: data?.length || 0,
+      illustrations: illustrations || [],
+    });
   }
 
   // subject指定 → そのsubjectのトピック一覧

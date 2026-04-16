@@ -46,6 +46,7 @@ function TextbookContent() {
   const [personalMaterials, setPersonalMaterials] = useState<MaterialSummary[]>([]);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [topicContent, setTopicContent] = useState("");
+  const [illustrations, setIllustrations] = useState<{ image_url: string; caption: string | null; position: string }[]>([]);
   const [currentTopic, setCurrentTopic] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingContent, setLoadingContent] = useState(false);
@@ -90,8 +91,9 @@ function TextbookContent() {
       .then((r) => r.json())
       .then((data) => {
         setTopicContent(data.content || "");
+        setIllustrations(data.illustrations || []);
       })
-      .catch(() => setTopicContent(""))
+      .catch(() => { setTopicContent(""); setIllustrations([]); })
       .finally(() => setLoadingContent(false));
   }, [topicParam, examId, sourceParam]);
 
@@ -183,11 +185,32 @@ function TextbookContent() {
             </div>
           ) : (
             <article className="max-w-4xl mx-auto px-6 py-8">
+              {illustrations.filter(i => i.position === "before_content").map((img, i) => (
+                <figure key={`before-${i}`} className="mb-8">
+                  <img src={img.image_url} alt={img.caption || ""} className="w-full rounded-2xl border border-[var(--color-border)]" loading="lazy" />
+                  {img.caption && <figcaption className="mt-2 text-center text-sm text-[var(--color-text-muted)]">{img.caption}</figcaption>}
+                </figure>
+              ))}
+
+              {illustrations.filter(i => i.position === "after_heading").map((img, i) => (
+                <figure key={`heading-${i}`} className="mb-8">
+                  <img src={img.image_url} alt={img.caption || ""} className="w-full rounded-2xl border border-[var(--color-border)]" loading="lazy" />
+                  {img.caption && <figcaption className="mt-2 text-center text-sm text-[var(--color-text-muted)]">{img.caption}</figcaption>}
+                </figure>
+              ))}
+
               <div className="textbook-content prose prose-neutral max-w-none">
                 <MarkdownRenderer>
                   {topicContent}
                 </MarkdownRenderer>
               </div>
+
+              {illustrations.filter(i => i.position === "after_content").map((img, i) => (
+                <figure key={`after-${i}`} className="mt-8">
+                  <img src={img.image_url} alt={img.caption || ""} className="w-full rounded-2xl border border-[var(--color-border)]" loading="lazy" />
+                  {img.caption && <figcaption className="mt-2 text-center text-sm text-[var(--color-text-muted)]">{img.caption}</figcaption>}
+                </figure>
+              ))}
 
               {/* Prev/Next navigation */}
               <div className="mt-12 pt-6 border-t border-[var(--color-border)] flex items-center justify-between gap-4">
