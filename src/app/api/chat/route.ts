@@ -5,6 +5,8 @@ import { getExamById } from "@/lib/exams";
 import { buildTutorRAGBundle, type RAGReference } from "@/lib/rag/context-builder";
 import { chatPostSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { type CoreKnowledgeRow } from "@/lib/core-engine";
+import { parseHiddenTags, stripHiddenTags, upsertCoreKnowledge, degradeCoreKnowledge, HIDDEN_TAG_INSTRUCTION_MENTOR } from "@/lib/core-knowledge-writer";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -78,7 +80,24 @@ export async function POST(request: Request) {
     return Response.json({ error: "不明な試験カテゴリです" }, { status: 400 });
   }
 
-  let systemPrompt = buildTutorSystemPrompt(exam.name, subject);
+  const { data: coreData } = await supabase
+    .from("core_knowledge").select("*")
+    .eq("user_id", user.id).eq("exam_id", examId)
+    .order("created_at", { ascending: false }).limit(200);
+  const allCore: CoreKnowledgeRow[] = (coreData || []).map((e: Record<string, unknown>) => ({
+    ...e,
+    operation_evidence: e.operation_evidence || { recognized: false, reproduced: false, explained: false, applied: false, integrated: false },
+    connection_strengths: e.connection_strengths || {},
+    retrieval_contexts: e.retrieval_contexts || [],
+    stability: (e.stability as number) || 3.0,
+    retrieval_count: (e.retrieval_count as number) || 0,
+    retrieval_success_count: (e.retrieval_success_count as number) || 0,
+    retrieval_fail_count: (e.retrieval_fail_count as number) || 0,
+    interference_count: (e.interference_count as number) || 0,
+    rag_verification_status: (e.rag_verification_status as string) || "unverified",
+  })) as CoreKnowledgeRow[];
+
+  let systemPrompt = buildTutorSystemPrompt(exam.name, subject) + HIDDEN_TAG_INSTRUCTION_MENTOR;
   let references: RAGReference[] = [];
 
   // RAGコンテキストを取得して注入（Bedrock Titan Embed）
@@ -132,13 +151,18 @@ export async function POST(request: Request) {
           ) {
             const text = event.delta.text;
             fullResult += text;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
-            );
+            const clean = stripHiddenTags(text);
+            if (clean) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: clean })}\n\n`)
+              );
+            }
           }
         }
 
-        // DBに保存
+        const diagnostics = parseHiddenTags(fullResult);
+        const cleanResult = stripHiddenTags(fullResult).trim();
+
         await supabase.from("chat_messages").insert([
           { user_id: user.id, exam_id: examId, subject, role: "user", content: message },
           {
@@ -146,12 +170,35 @@ export async function POST(request: Request) {
             exam_id: examId,
             subject,
             role: "assistant",
-            content: fullResult,
+            content: cleanResult,
             metadata: { references },
           },
         ]);
 
-        // 無料プランの場合、使用回数を増やす
+        const mentorEntries = [
+          ...diagnostics.correct.map(e => ({ ...e, source: "correct" })),
+          ...diagnostics.recognized.map(e => ({ ...e, source: "mentor_recognition" })),
+        ];
+        if (mentorEntries.length > 0 || diagnostics.errors.length > 0 || diagnostics.gaps.length > 0) {
+          (async () => {
+            try {
+              if (mentorEntries.length > 0) {
+                await upsertCoreKnowledge({
+                  supabase, userId: user.id, examId, subject: subject || "全般", topic: null,
+                  entries: mentorEntries, allExisting: allCore,
+                  sessionContext: `mentor:${subject || "general"}`,
+                });
+              }
+              if (diagnostics.errors.length > 0 || diagnostics.gaps.length > 0) {
+                await degradeCoreKnowledge({
+                  supabase, userId: user.id, examId, subject: subject || "全般", topic: null,
+                  errors: diagnostics.errors, missed: diagnostics.gaps,
+                });
+              }
+            } catch (err) { console.error("mentor core write error:", err); }
+          })();
+        }
+
         if (profile.plan === "free") {
           await supabase
             .from("profiles")
