@@ -3,8 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import {
   ArrowLeft,
   Loader2,
@@ -185,9 +184,9 @@ function TextbookContent() {
           ) : (
             <article className="max-w-4xl mx-auto px-6 py-8">
               <div className="textbook-content prose prose-neutral max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <MarkdownRenderer>
                   {topicContent}
-                </ReactMarkdown>
+                </MarkdownRenderer>
               </div>
 
               {/* Prev/Next navigation */}

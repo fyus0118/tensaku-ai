@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense, lazy } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+
+const KnowledgeGraph = lazy(() => import("./knowledge-graph"));
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import {
   ArrowLeft, Send, Loader2, Brain, MessageCircle, Map,
   ChevronDown, ChevronRight, AlertCircle, CheckCircle2,
@@ -131,6 +132,52 @@ interface TrapPrediction {
   description: string;
 }
 
+interface CascadeWarning {
+  rootTopic: string;
+  rootRetention: number;
+  casualtyCount: number;
+  casualties: { topic: string; depth: number; effectiveConfidence: number }[];
+  deadline: string | null;
+  severity: number;
+  warning: string;
+}
+
+interface CounterfactualAlert {
+  targetTopic: string;
+  targetConfidence: number;
+  impactedCount: number;
+  impacted: { topic: string; relationType: string; currentEC: number; projectedEC: number }[];
+  vulnerabilityScore: number;
+  report: string;
+}
+
+interface ProactiveReport {
+  summary: string;
+  cascadeWarnings: CascadeWarning[];
+  counterfactualAlerts: CounterfactualAlert[];
+  generatedAt: string;
+}
+
+interface GraphNode {
+  id: string;
+  topic: string;
+  subject: string;
+  effectiveConfidence: number;
+  retention: number;
+  retentionStatus: string;
+  depth: number;
+  isCollapsing: boolean;
+  isCascadeRoot: boolean;
+  casualtyCount: number;
+}
+
+interface GraphEdge {
+  source: string;
+  target: string;
+  type: string;
+  strength: number;
+}
+
 interface CoreStats {
   totalEntries: number;
   totalCoverage: number;
@@ -143,6 +190,8 @@ interface CoreStats {
   traps: TrapPrediction[];
   interleaveRecs: InterleaveRec[];
   chunkOpportunities: ChunkOpportunity[];
+  proactiveReport?: ProactiveReport;
+  knowledgeGraph?: { nodes: GraphNode[]; edges: GraphEdge[] };
 }
 
 interface ChatMessage { role: "user" | "assistant"; content: string }
@@ -389,6 +438,14 @@ function CoreContent() {
               <EmptyCore examId={examId} />
             ) : (
               <>
+                {/* Coreのプロアクティブ報告 */}
+                {stats.proactiveReport && (
+                  stats.proactiveReport.cascadeWarnings.length > 0 ||
+                  stats.proactiveReport.counterfactualAlerts.length > 0
+                ) && (
+                  <ProactiveReportSection report={stats.proactiveReport} />
+                )}
+
                 {/* 全体サマリー */}
                 <OverviewSection stats={stats} />
 
@@ -400,6 +457,22 @@ function CoreContent() {
                 {/* Coreの気づき */}
                 {stats.insights && stats.insights.length > 0 && (
                   <InsightsSection insights={stats.insights} />
+                )}
+
+                {/* 知識の依存グラフ */}
+                {stats.knowledgeGraph && stats.knowledgeGraph.nodes.length > 0 && (
+                  <div className="mb-6">
+                    <Suspense fallback={
+                      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 text-center text-sm text-[var(--color-text-muted)]">
+                        グラフを読み込み中...
+                      </div>
+                    }>
+                      <KnowledgeGraph
+                        nodes={stats.knowledgeGraph.nodes}
+                        edges={stats.knowledgeGraph.edges}
+                      />
+                    </Suspense>
+                  </div>
                 )}
 
                 {/* アクションセンター（復習/インターリーブ/チャンク） */}
@@ -465,7 +538,7 @@ function CoreContent() {
                         <Brain className="w-4 h-4 text-[var(--color-accent)]" />
                       </div>
                       <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        <MarkdownRenderer>{msg.content}</MarkdownRenderer>
                       </div>
                     </div>
                   )}
@@ -478,7 +551,7 @@ function CoreContent() {
                     <Brain className="w-4 h-4 text-[var(--color-accent)]" />
                   </div>
                   <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingText}</ReactMarkdown>
+                    <MarkdownRenderer>{streamingText}</MarkdownRenderer>
                   </div>
                 </div>
               )}
@@ -537,6 +610,115 @@ function EmptyCore({ examId }: { examId: string }) {
         className="inline-block py-3 px-8 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-bold transition-colors">
         Prism Teachを始める
       </Link>
+    </div>
+  );
+}
+
+function ProactiveReportSection({ report }: { report: ProactiveReport }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasCascade = report.cascadeWarnings.length > 0;
+  const hasCounterfactual = report.counterfactualAlerts.length > 0;
+
+  return (
+    <div className="mb-6 rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 p-4">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-start gap-3 text-left"
+      >
+        <div className="p-2 rounded-lg bg-purple-100 mt-0.5">
+          <Brain className="w-5 h-5 text-purple-700" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-bold text-purple-900 mb-1">
+            Coreからの報告
+          </h3>
+          <p className="text-sm text-purple-700">{report.summary}</p>
+        </div>
+        {expanded ? (
+          <ChevronDown className="w-4 h-4 text-purple-400 mt-1 shrink-0" />
+        ) : (
+          <ChevronRight className="w-4 h-4 text-purple-400 mt-1 shrink-0" />
+        )}
+      </button>
+
+      {expanded && (
+        <div className="mt-4 space-y-4">
+          {/* 連鎖崩壊警告 */}
+          {hasCascade && (
+            <div>
+              <h4 className="text-xs font-bold text-red-700 mb-2 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                連鎖崩壊リスク
+              </h4>
+              <div className="space-y-2">
+                {report.cascadeWarnings.map((cw, i) => (
+                  <div key={i} className="rounded-lg bg-white/70 border border-red-100 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`inline-block w-2 h-2 rounded-full ${
+                        cw.severity > 70 ? "bg-red-500" : cw.severity > 40 ? "bg-amber-500" : "bg-yellow-400"
+                      }`} />
+                      <span className="text-xs font-bold text-gray-800">{cw.rootTopic}</span>
+                      <span className="text-xs text-gray-400">記憶定着 {cw.rootRetention}%</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2">{cw.warning}</p>
+                    {cw.casualties.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {cw.casualties.map((cas, j) => (
+                          <span key={j} className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded">
+                            {cas.topic} (EC {cas.effectiveConfidence}%)
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {cw.deadline && (
+                      <p className="text-[10px] text-red-500 mt-1.5 font-medium">
+                        期限: {new Date(cw.deadline).toLocaleDateString("ja-JP", { month: "long", day: "numeric" })}までに復習
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 反実仮想テスト結果 */}
+          {hasCounterfactual && (
+            <div>
+              <h4 className="text-xs font-bold text-indigo-700 mb-2 flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                構造的脆弱性
+              </h4>
+              <div className="space-y-2">
+                {report.counterfactualAlerts.map((cf, i) => (
+                  <div key={i} className="rounded-lg bg-white/70 border border-indigo-100 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`inline-block w-2 h-2 rounded-full ${
+                        cf.vulnerabilityScore > 70 ? "bg-red-500" : cf.vulnerabilityScore > 40 ? "bg-amber-500" : "bg-indigo-400"
+                      }`} />
+                      <span className="text-xs font-bold text-gray-800">
+                        もし「{cf.targetTopic}」が間違っていたら？
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2">{cf.report}</p>
+                    {cf.impacted.length > 0 && (
+                      <div className="space-y-1">
+                        {cf.impacted.map((imp, j) => (
+                          <div key={j} className="flex items-center gap-2 text-[10px]">
+                            <span className="text-gray-400">{imp.relationType === "depends_on" ? "依存" : "関連"}</span>
+                            <span className="text-gray-700">{imp.topic}</span>
+                            <span className="text-gray-400">EC {imp.currentEC}%</span>
+                            <span className="text-red-500">→ {imp.projectedEC}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

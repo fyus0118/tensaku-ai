@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import {
   ArrowLeft,
   BookOpen,
@@ -186,7 +185,7 @@ export default async function MaterialReaderPage({
             </div>
 
             <article className="textbook-content prose prose-neutral max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{material.content}</ReactMarkdown>
+              <MarkdownRenderer>{material.content}</MarkdownRenderer>
             </article>
 
             <div className="mt-10 flex flex-col gap-3 border-t border-[var(--color-border)] pt-6 sm:flex-row">

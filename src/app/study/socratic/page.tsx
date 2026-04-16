@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import {
   ArrowLeft, Send, Loader2, HelpCircle, BrainCircuit, ChevronRight,
 } from "lucide-react";
@@ -38,6 +37,7 @@ function SocraticContent() {
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [started, setStarted] = useState(false);
+  const [coreIntervention, setCoreIntervention] = useState<{ type: string; message: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -100,6 +100,7 @@ function SocraticContent() {
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
+                if (data.coreIntervention) { setCoreIntervention(data.coreIntervention); }
                 if (data.text) { fullText += data.text; setStreamingText(fullText); }
                 if (data.done) {
                   setMessages(prev => [...prev, { role: "assistant", content: fullText }]);
@@ -203,6 +204,29 @@ function SocraticContent() {
             </div>
           )}
 
+          {/* Core先制介入バナー */}
+          {coreIntervention && (
+            <div className={`mb-6 p-4 rounded-xl border-2 ${
+              coreIntervention.type === "cascade_warning"
+                ? "border-red-200 bg-red-50"
+                : coreIntervention.type === "self_answer_first"
+                ? "border-purple-200 bg-purple-50"
+                : "border-indigo-200 bg-indigo-50"
+            } flex items-start gap-3`}>
+              <span className="text-lg mt-0.5">🧠</span>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-gray-700 mb-1">Coreからの介入</p>
+                <p className="text-sm text-gray-600">{coreIntervention.message}</p>
+              </div>
+              <button
+                onClick={() => setCoreIntervention(null)}
+                className="text-gray-400 hover:text-gray-600 text-xs shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {messages.map((msg, i) => (
             <div key={i} className={`mb-6 ${msg.role === "user" ? "flex justify-end" : ""}`}>
               {msg.role === "user" ? (
@@ -210,7 +234,7 @@ function SocraticContent() {
               ) : (
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0 mt-1"><BrainCircuit className="w-4 h-4 text-violet-400" /></div>
-                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown></div>
+                  <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none"><MarkdownRenderer>{msg.content}</MarkdownRenderer></div>
                 </div>
               )}
             </div>
@@ -219,7 +243,7 @@ function SocraticContent() {
           {streamingText && (
             <div className="mb-6 flex gap-3">
               <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0 mt-1"><BrainCircuit className="w-4 h-4 text-violet-400" /></div>
-              <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingText}</ReactMarkdown></div>
+              <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none"><MarkdownRenderer>{streamingText}</MarkdownRenderer></div>
             </div>
           )}
 

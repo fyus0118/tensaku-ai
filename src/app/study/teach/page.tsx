@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import {
   ArrowLeft,
   Send,
@@ -72,6 +71,7 @@ function TeachContent() {
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [turns, setTurns] = useState(0);
+  const [coreIntervention, setCoreIntervention] = useState<{ type: string; message: string } | null>(null);
   const [sessionResult, setSessionResult] = useState<SessionResult | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -202,6 +202,9 @@ function TeachContent() {
                   missedRef.current += d.missed || 0;
                   errorsRef.current += d.errors || 0;
                   correctRef.current += d.correct || 0;
+                  if (d.coreIntervention) {
+                    setCoreIntervention(d.coreIntervention);
+                  }
                 }
               } catch {
                 // ignore
@@ -479,6 +482,22 @@ function TeachContent() {
             </div>
           )}
 
+          {/* Core先制介入バナー */}
+          {coreIntervention && (
+            <div className={`mb-6 p-4 rounded-xl border-2 ${
+              coreIntervention.type === "cascade_warning"
+                ? "border-red-200 bg-red-50"
+                : "border-indigo-200 bg-indigo-50"
+            } flex items-start gap-3`}>
+              <span className="text-lg mt-0.5">🧠</span>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-gray-700 mb-1">Coreからの介入</p>
+                <p className="text-sm text-gray-600">{coreIntervention.message}</p>
+              </div>
+              <button onClick={() => setCoreIntervention(null)} className="text-gray-400 hover:text-gray-600 text-xs shrink-0">✕</button>
+            </div>
+          )}
+
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -494,9 +513,9 @@ function TeachContent() {
                     <UserRound className="w-4 h-4 text-amber-500" />
                   </div>
                   <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <MarkdownRenderer>
                       {msg.content}
-                    </ReactMarkdown>
+                    </MarkdownRenderer>
                   </div>
                 </div>
               )}
@@ -509,9 +528,9 @@ function TeachContent() {
                 <UserRound className="w-4 h-4 text-amber-500" />
               </div>
               <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <MarkdownRenderer>
                   {streamingText}
-                </ReactMarkdown>
+                </MarkdownRenderer>
               </div>
             </div>
           )}

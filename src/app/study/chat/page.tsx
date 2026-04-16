@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import {
   ArrowLeft,
   Send,
@@ -336,9 +335,9 @@ function ChatContent() {
                     <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
                   </div>
                   <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <MarkdownRenderer>
                       {msg.content}
-                    </ReactMarkdown>
+                    </MarkdownRenderer>
                     <ReferencesPanel examId={examId} references={msg.references} />
                   </div>
                 </div>
@@ -352,9 +351,9 @@ function ChatContent() {
                 <BookOpen className="w-4 h-4 text-[var(--color-accent)]" />
               </div>
               <div className="chat-result text-sm flex-1 min-w-0 prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <MarkdownRenderer>
                   {streamingText}
-                </ReactMarkdown>
+                </MarkdownRenderer>
                 <ReferencesPanel examId={examId} references={streamingReferences} />
               </div>
             </div>

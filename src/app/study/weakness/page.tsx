@@ -3,8 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import {
   ArrowLeft, Loader2, Zap, CheckCircle2, XCircle, ChevronRight, RotateCcw,
 } from "lucide-react";
@@ -251,7 +250,7 @@ function WeaknessContent() {
             {/* 問題文 */}
             <div className="p-6 rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border)] mb-6">
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentQuestion.question}</ReactMarkdown>
+                <MarkdownRenderer>{currentQuestion.question}</MarkdownRenderer>
               </div>
             </div>
 
@@ -295,7 +294,7 @@ function WeaknessContent() {
                 <div className="p-5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
                   <h4 className="font-bold text-sm mb-2">解説</h4>
                   <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentQuestion.explanation}</ReactMarkdown>
+                    <MarkdownRenderer>{currentQuestion.explanation}</MarkdownRenderer>
                   </div>
                 </div>
                 <button
