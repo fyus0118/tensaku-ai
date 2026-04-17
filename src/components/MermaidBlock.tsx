@@ -14,7 +14,8 @@ export default function MermaidBlock({ chart }: { chart: string }) {
 
     (async () => {
       try {
-        const mermaid = (await import("mermaid")).default;
+        // @ts-ignore — mermaid is optional, loaded at runtime
+        const mermaid = (await import(/* webpackIgnore: true */ "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs")).default;
         if (!mermaidInitialized) {
           mermaid.initialize({
             startOnLoad: false,
