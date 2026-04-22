@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { buildTeachSystemPrompt, buildTeachFirstMessage } from "@/lib/prompts/teach";
 import { getExamById } from "@/lib/exams";
@@ -25,8 +24,7 @@ import {
   type OperationEvidence,
 } from "@/lib/core-engine";
 import { simulateCascadeCollapse, runCounterfactualScan } from "@/lib/core-engine-analysis";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+import { geminiStream } from "@/lib/llm";
 
 // 隠しタグからJSON形式の診断データを抽出
 interface CoreEntry {
@@ -246,12 +244,12 @@ export async function POST(request: Request) {
     messages.push({ role: "user", content: message });
   }
 
-  // ストリーミング
-  const stream = await anthropic.messages.stream({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 2048,
+  // ストリーミング (Gemini Pro)
+  const gemini = await geminiStream({
+    role: "teach",
     system: systemPrompt,
     messages,
+    maxTokens: 2048,
   });
 
   let fullResult = "";
@@ -260,20 +258,13 @@ export async function POST(request: Request) {
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            const text = event.delta.text;
-            fullResult += text;
-            // 隠しタグはフロントに送らない
-            const cleanText = text.replace(/<!--(?:CAUGHT|MISSED|ERROR|CORRECT|VERIFIED|LEVEL):.*?-->/g, "");
-            if (cleanText) {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: cleanText })}\n\n`)
-              );
-            }
+        for await (const text of gemini.stream) {
+          fullResult += text;
+          const cleanText = text.replace(/<!--(?:CAUGHT|MISSED|ERROR|CORRECT|VERIFIED|LEVEL):.*?-->/g, "");
+          if (cleanText) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ text: cleanText })}\n\n`)
+            );
           }
         }
 

@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { getExamById } from "@/lib/exams";
@@ -22,8 +21,8 @@ import {
   type CoreKnowledgeRow,
 } from "@/lib/core-engine";
 import { generateProactiveReport } from "@/lib/core-engine-analysis";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+import { buildBlindspotReport } from "@/lib/blindspot";
+import { geminiStream } from "@/lib/llm";
 
 interface TopicDetail {
   topic: string;
@@ -335,6 +334,9 @@ export async function GET(request: Request) {
   // プロアクティブ報告: 連鎖崩壊シミュレーション + 反実仮想テスト
   const proactiveReport = generateProactiveReport(knowledgeEntries);
 
+  // 認知の死角レポート: 自己申告と実態のギャップを明示
+  const blindspotReport = buildBlindspotReport(knowledgeEntries, examId);
+
   // 依存グラフデータ（ビジュアライゼーション用）
   const cascadeResults = proactiveReport.cascadeWarnings;
   const collapsingIds = new Set(cascadeResults.flatMap(c => [c.root.id, ...c.casualties.map(cas => cas.id)]));
@@ -450,6 +452,7 @@ export async function GET(request: Request) {
         nodes: graphNodes,
         edges: graphEdges,
       },
+      blindspotReport,
     },
   });
 }
@@ -601,11 +604,11 @@ export async function POST(request: Request) {
   // Coreの人格プロンプトを生成（洞察・落とし穴予測・ネットワーク情報を含む）
   const systemPrompt = buildCorePersonalityPrompt(reconstructed, allEntries);
 
-  const stream = await anthropic.messages.stream({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 2048,
+  const gemini = await geminiStream({
+    role: "core",
     system: systemPrompt,
     messages: [{ role: "user", content: question }],
+    maxTokens: 2048,
   });
 
   let fullResult = "";
@@ -614,11 +617,9 @@ export async function POST(request: Request) {
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            fullResult += event.delta.text;
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
-          }
+        for await (const text of gemini.stream) {
+          fullResult += text;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
         }
         // 生成的再構成: 回答を記録し、過去の再構成との差分を検出
         const reconstructionRecord = {

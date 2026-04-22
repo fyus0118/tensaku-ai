@@ -18,8 +18,8 @@ function getGenAI(): GoogleGenerativeAI {
 export type LLMRole = "teach" | "core" | "socratic" | "mentor" | "practice" | "case-study" | "flashcards";
 
 const MODEL_MAP: Record<LLMRole, { provider: "anthropic" | "gemini"; model: string }> = {
-  teach:        { provider: "anthropic", model: "claude-sonnet-4-20250514" },
-  core:         { provider: "anthropic", model: "claude-sonnet-4-20250514" },
+  teach:        { provider: "gemini",   model: "gemini-2.5-pro" },
+  core:         { provider: "gemini",   model: "gemini-2.5-pro" },
   socratic:     { provider: "gemini",   model: "gemini-2.5-pro" },
   mentor:       { provider: "gemini",   model: "gemini-2.5-flash" },
   practice:     { provider: "gemini",   model: "gemini-2.5-flash" },
