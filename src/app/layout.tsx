@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Noto_Sans_JP } from "next/font/google";
 import { NativeInit } from "@/components/NativeInit";
 import { AuthListener } from "@/components/AuthListener";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -56,6 +57,7 @@ export default function RootLayout({
         <NativeInit />
         <AuthListener />
         {children}
+        <Analytics />
       </body>
     </html>
   );
