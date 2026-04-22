@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { buildTutorSystemPrompt } from "@/lib/prompts/tutor";
 import { getExamById } from "@/lib/exams";
@@ -7,8 +6,7 @@ import { chatPostSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, checkDailyFreeLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { type CoreKnowledgeRow } from "@/lib/core-engine";
 import { parseHiddenTags, stripHiddenTags, upsertCoreKnowledge, degradeCoreKnowledge, HIDDEN_TAG_INSTRUCTION_MENTOR } from "@/lib/core-knowledge-writer";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+import { geminiStream } from "@/lib/llm";
 
 // 会話履歴を取得
 export async function GET(request: Request) {
@@ -127,10 +125,9 @@ export async function POST(request: Request) {
   }
   messages.push({ role: "user", content: message });
 
-  // ストリーミング
-  const stream = await anthropic.messages.stream({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 4096,
+  // ストリーミング (Gemini Flash)
+  const gemini = await geminiStream({
+    role: "mentor",
     system: systemPrompt,
     messages,
   });
@@ -145,19 +142,13 @@ export async function POST(request: Request) {
           encoder.encode(`data: ${JSON.stringify({ references })}\n\n`)
         );
 
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            const text = event.delta.text;
-            fullResult += text;
-            const clean = stripHiddenTags(text);
-            if (clean) {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: clean })}\n\n`)
-              );
-            }
+        for await (const text of gemini.stream) {
+          fullResult += text;
+          const clean = stripHiddenTags(text);
+          if (clean) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ text: clean })}\n\n`)
+            );
           }
         }
 

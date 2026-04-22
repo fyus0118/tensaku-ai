@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getExamById } from "@/lib/exams";
 import { sm2 } from "@/lib/adaptive-engine";
@@ -11,8 +10,7 @@ import {
   buildReviewSchedule,
   type CoreKnowledgeRow,
 } from "@/lib/core-engine";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+import { geminiGenerate } from "@/lib/llm";
 
 // フラッシュカードをAI生成
 export async function POST(request: Request) {
@@ -81,10 +79,7 @@ export async function POST(request: Request) {
 ${weakKnowledge}`;
   }
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 4096,
-    system: `あなたは${exam.name}のFlashcards生成AIです。
+  const flashcardSystem = `あなたは${exam.name}のFlashcards生成AIです。
 以下のJSON配列形式でFlashcardsを生成してください。JSON以外は出力しないでください。
 
 [
@@ -96,14 +91,14 @@ ${weakKnowledge}`;
 - 試験で実際に問われる重要な知識に絞る
 - frontは簡潔（1〜2文）、backは必要十分（条文番号・判例名含む）
 - 語呂合わせや覚え方があれば積極的に含める
-- 紛らわしい知識は比較で整理する${coreContext}`,
-    messages: [{
-      role: "user",
-      content: `${subject}${topic ? `（${topic}）` : ""}のFlashcardsを${count}枚生成してください。`,
-    }],
-  });
+- 紛らわしい知識は比較で整理する${coreContext}`;
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
+  const text = await geminiGenerate({
+    role: "flashcards",
+    system: flashcardSystem,
+    prompt: `${subject}${topic ? `（${topic}）` : ""}のFlashcardsを${count}枚生成してください。`,
+    maxTokens: 4096,
+  });
 
   let cards;
   try {

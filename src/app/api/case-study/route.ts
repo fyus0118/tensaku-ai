@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { buildCaseStudySystemPrompt } from "@/lib/prompts/case-study";
 import { getExamById } from "@/lib/exams";
@@ -7,8 +6,7 @@ import { teachPostSchema, parseBody } from "@/lib/validations";
 import { checkRateLimit, checkDailyFreeLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { type CoreKnowledgeRow } from "@/lib/core-engine";
 import { parseHiddenTags, stripHiddenTags, upsertCoreKnowledge, degradeCoreKnowledge, HIDDEN_TAG_INSTRUCTION_CASE_STUDY } from "@/lib/core-knowledge-writer";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+import { geminiStream } from "@/lib/llm";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -62,9 +60,8 @@ export async function POST(request: Request) {
   }
   messages.push({ role: "user", content: message });
 
-  const stream = await anthropic.messages.stream({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 4096,
+  const gemini = await geminiStream({
+    role: "case-study",
     system: systemPrompt,
     messages,
   });
@@ -75,13 +72,10 @@ export async function POST(request: Request) {
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            const text = event.delta.text;
-            fullResult += text;
-            const clean = stripHiddenTags(text);
-            if (clean) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: clean })}\n\n`));
-          }
+        for await (const text of gemini.stream) {
+          fullResult += text;
+          const clean = stripHiddenTags(text);
+          if (clean) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: clean })}\n\n`));
         }
 
         const diagnostics = parseHiddenTags(fullResult);

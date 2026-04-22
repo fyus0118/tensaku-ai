@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { buildPracticeSystemPrompt, buildPracticeUserMessage } from "@/lib/prompts/practice";
 import { getExamById } from "@/lib/exams";
@@ -15,8 +14,7 @@ import {
   type CoreKnowledgeRow,
 } from "@/lib/core-engine";
 import { simulateCascadeCollapse, runCounterfactualScan } from "@/lib/core-engine-analysis";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+import { geminiGenerate } from "@/lib/llm";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -148,15 +146,12 @@ export async function POST(request: Request) {
   });
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+    const text = await geminiGenerate({
+      role: "practice",
       system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
+      prompt: userMessage,
+      maxTokens: 4096,
     });
-
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
 
     // JSONをパース（ネストした波括弧を正しく扱う）
     let parsed;
