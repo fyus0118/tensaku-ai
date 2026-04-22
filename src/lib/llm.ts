@@ -47,16 +47,38 @@ export async function geminiStream(params: {
     generationConfig: { maxOutputTokens: params.maxTokens || 4096 },
   });
 
-  // Gemini uses "user" and "model" roles
-  const history = params.messages.slice(0, -1).map(m => ({
+  // Gemini uses "user" and "model" roles, and requires first message to be "user"
+  const rawHistory = params.messages.slice(0, -1).map(m => ({
     role: m.role === "assistant" ? "model" as const : "user" as const,
     parts: [{ text: m.content }],
   }));
 
+  // Gemini requires first message to be "user" — prepend dummy if needed
+  const history = rawHistory.length > 0 && rawHistory[0].role === "model"
+    ? [{ role: "user" as const, parts: [{ text: "お願いします。" }] }, ...rawHistory]
+    : rawHistory;
+
   const lastMessage = params.messages[params.messages.length - 1];
 
-  const chat = model.startChat({ history });
-  const result = await chat.sendMessageStream(lastMessage.content);
+  let chat = model.startChat({ history });
+  let result;
+  try {
+    result = await chat.sendMessageStream(lastMessage.content);
+  } catch (err) {
+    const is503 = err instanceof Error && err.message.includes("503");
+    if (is503 && config.model.includes("flash")) {
+      console.warn(`[geminiStream:${params.role}] Flash 503 → Pro fallback`);
+      const fallback = getGenAI().getGenerativeModel({
+        model: "gemini-2.5-pro",
+        systemInstruction: params.system,
+        generationConfig: { maxOutputTokens: params.maxTokens || 4096 },
+      });
+      chat = fallback.startChat({ history });
+      result = await chat.sendMessageStream(lastMessage.content);
+    } else {
+      throw err;
+    }
+  }
 
   let fullText = "";
 
@@ -89,6 +111,23 @@ export async function geminiGenerate(params: {
     generationConfig: { maxOutputTokens: params.maxTokens || 4096 },
   });
 
-  const result = await model.generateContent(params.prompt);
-  return result.response.text();
+  try {
+    const result = await model.generateContent(params.prompt);
+    return result.response.text();
+  } catch (err) {
+    // 503: Flash→Proにフォールバック
+    const is503 = err instanceof Error && err.message.includes("503");
+    if (is503 && config.model.includes("flash")) {
+      console.warn(`[geminiGenerate:${params.role}] Flash 503 → Pro fallback`);
+      const fallback = getGenAI().getGenerativeModel({
+        model: "gemini-2.5-pro",
+        systemInstruction: params.system,
+        generationConfig: { maxOutputTokens: params.maxTokens || 4096 },
+      });
+      const result = await fallback.generateContent(params.prompt);
+      return result.response.text();
+    }
+    console.error(`[geminiGenerate:${params.role}] error:`, err instanceof Error ? err.message : err);
+    throw err;
+  }
 }
