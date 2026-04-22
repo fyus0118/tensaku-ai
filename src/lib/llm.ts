@@ -31,6 +31,12 @@ export function getModelConfig(role: LLMRole) {
   return MODEL_MAP[role];
 }
 
+// Gemini 2.5 ProのthinkingトークンがmaxOutputTokensに含まれるため、
+// Pro使用時はthinking分(8K)を上乗せする
+function adjustMaxTokens(model: string, maxTokens: number): number {
+  return model.includes("pro") ? maxTokens + 8192 : maxTokens;
+}
+
 /**
  * Geminiでストリーミング生成 — Anthropicのstream互換のイベント形式で返す
  */
@@ -41,10 +47,11 @@ export async function geminiStream(params: {
   maxTokens?: number;
 }): Promise<{ stream: AsyncIterable<string>; getText: () => string }> {
   const config = MODEL_MAP[params.role];
+  const maxTokens = adjustMaxTokens(config.model, params.maxTokens || 4096);
   const model = getGenAI().getGenerativeModel({
     model: config.model,
     systemInstruction: params.system,
-    generationConfig: { maxOutputTokens: params.maxTokens || 4096 },
+    generationConfig: { maxOutputTokens: maxTokens },
   });
 
   // Gemini uses "user" and "model" roles, and requires first message to be "user"
@@ -105,10 +112,11 @@ export async function geminiGenerate(params: {
   maxTokens?: number;
 }): Promise<string> {
   const config = MODEL_MAP[params.role];
+  const maxTokens = adjustMaxTokens(config.model, params.maxTokens || 4096);
   const model = getGenAI().getGenerativeModel({
     model: config.model,
     systemInstruction: params.system,
-    generationConfig: { maxOutputTokens: params.maxTokens || 4096 },
+    generationConfig: { maxOutputTokens: maxTokens },
   });
 
   try {
@@ -122,7 +130,7 @@ export async function geminiGenerate(params: {
       const fallback = getGenAI().getGenerativeModel({
         model: "gemini-2.5-pro",
         systemInstruction: params.system,
-        generationConfig: { maxOutputTokens: params.maxTokens || 4096 },
+        generationConfig: { maxOutputTokens: adjustMaxTokens("gemini-2.5-pro", params.maxTokens || 4096) },
       });
       const result = await fallback.generateContent(params.prompt);
       return result.response.text();
