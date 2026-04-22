@@ -4,7 +4,7 @@ import { buildCaseStudySystemPrompt } from "@/lib/prompts/case-study";
 import { getExamById } from "@/lib/exams";
 import { getRecommendedDifficulty } from "@/lib/adaptive-engine";
 import { teachPostSchema, parseBody } from "@/lib/validations";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { checkRateLimit, checkDailyFreeLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { type CoreKnowledgeRow } from "@/lib/core-engine";
 import { parseHiddenTags, stripHiddenTags, upsertCoreKnowledge, degradeCoreKnowledge, HIDDEN_TAG_INSTRUCTION_CASE_STUDY } from "@/lib/core-knowledge-writer";
 
@@ -22,7 +22,8 @@ export async function POST(request: Request) {
     .from("profiles").select("*").eq("id", user.id).single();
   if (!profile) return Response.json({ error: "プロフィールが見つかりません" }, { status: 404 });
 
-  // 課金ゲート一時無効化（無料公開中）
+  const dailyLimit = checkDailyFreeLimit(user.id, profile.plan);
+  if (dailyLimit) return dailyLimit;
 
   const body = await request.json();
   const parsed = parseBody(teachPostSchema, body);

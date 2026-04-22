@@ -4,7 +4,7 @@ import { buildTeachSystemPrompt, buildTeachFirstMessage } from "@/lib/prompts/te
 import { getExamById } from "@/lib/exams";
 import { getWeakPoints } from "@/lib/adaptive-engine";
 import { teachPostSchema, parseBody } from "@/lib/validations";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { checkRateLimit, checkDailyFreeLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { embedQuery } from "@/lib/rag/embeddings";
 import {
   calculateBaseConfidence,
@@ -155,7 +155,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "プロフィールが見つかりません" }, { status: 404 });
   }
 
-  // 課金ゲート一時無効化（無料公開中）
+  const dailyLimit = checkDailyFreeLimit(user.id, profile.plan);
+  if (dailyLimit) return dailyLimit;
 
   const body = await request.json();
   const parsed = parseBody(teachPostSchema, body);

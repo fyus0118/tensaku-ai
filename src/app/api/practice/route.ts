@@ -5,7 +5,7 @@ import { getExamById } from "@/lib/exams";
 import { buildPracticeRAGContext } from "@/lib/rag/context-builder";
 import { getWeakPoints, getRecommendedDifficulty, updateStreak } from "@/lib/adaptive-engine";
 import { practicePostSchema, practicePutSchema, parseBody } from "@/lib/validations";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { checkRateLimit, checkDailyFreeLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import {
   feedbackFromPractice,
   calcEffectiveConfidence,
@@ -42,7 +42,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "プロフィールが見つかりません" }, { status: 404 });
   }
 
-  // 課金ゲート一時無効化（無料公開中）
+  const dailyLimit = checkDailyFreeLimit(user.id, profile.plan);
+  if (dailyLimit) return dailyLimit;
 
   const body = await request.json();
   const parsed = parseBody(practicePostSchema, body);

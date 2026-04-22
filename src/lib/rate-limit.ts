@@ -77,4 +77,30 @@ export const RATE_LIMITS = {
   read: { limit: 60, windowSeconds: 60 },
   /** データ書き込み系（PUT）: 30回/分 */
   write: { limit: 30, windowSeconds: 60 },
+  /** 無料プラン日次上限: 30回/日 */
+  dailyFree: { limit: 30, windowSeconds: 86400 },
 } as const;
+
+/** 無料プランの日次制限チェック。proプランはスキップ */
+export function checkDailyFreeLimit(userId: string, plan: string): Response | null {
+  if (plan === "pro") return null;
+  const result = rateLimit(`daily_free:${userId}`, RATE_LIMITS.dailyFree);
+  if (!result.allowed) {
+    return Response.json(
+      {
+        error: "本日の無料枠（30回）を使い切りました。明日リセットされます。",
+        upgradeUrl: "/pricing",
+        remaining: 0,
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((result.resetAt - Date.now()) / 1000)),
+          "X-RateLimit-Limit": "30",
+          "X-RateLimit-Remaining": "0",
+        },
+      }
+    );
+  }
+  return null;
+}

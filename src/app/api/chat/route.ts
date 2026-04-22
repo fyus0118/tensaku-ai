@@ -4,7 +4,7 @@ import { buildTutorSystemPrompt } from "@/lib/prompts/tutor";
 import { getExamById } from "@/lib/exams";
 import { buildTutorRAGBundle, type RAGReference } from "@/lib/rag/context-builder";
 import { chatPostSchema, parseBody } from "@/lib/validations";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { checkRateLimit, checkDailyFreeLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { type CoreKnowledgeRow } from "@/lib/core-engine";
 import { parseHiddenTags, stripHiddenTags, upsertCoreKnowledge, degradeCoreKnowledge, HIDDEN_TAG_INSTRUCTION_MENTOR } from "@/lib/core-knowledge-writer";
 
@@ -65,7 +65,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "プロフィールが見つかりません" }, { status: 404 });
   }
 
-  // 課金ゲート一時無効化（無料公開中）
+  const dailyLimit = checkDailyFreeLimit(user.id, profile.plan);
+  if (dailyLimit) return dailyLimit;
 
   const body = await request.json();
   const parsed = parseBody(chatPostSchema, body);
