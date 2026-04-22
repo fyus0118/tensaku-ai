@@ -119,23 +119,36 @@ export async function geminiGenerate(params: {
     generationConfig: { maxOutputTokens: maxTokens },
   });
 
-  try {
-    const result = await model.generateContent(params.prompt);
-    return result.response.text();
-  } catch (err) {
-    // 503: Flash→Proにフォールバック
-    const is503 = err instanceof Error && err.message.includes("503");
-    if (is503 && config.model.includes("flash")) {
-      console.warn(`[geminiGenerate:${params.role}] Flash 503 → Pro fallback`);
-      const fallback = getGenAI().getGenerativeModel({
+  // 503リトライ: Flash→Flash再試行(2回)→Proフォールバック
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const useModel = attempt < MAX_RETRIES ? model : getGenAI().getGenerativeModel({
         model: "gemini-2.5-pro",
         systemInstruction: params.system,
-        generationConfig: { maxOutputTokens: adjustMaxTokens("gemini-2.5-pro", params.maxTokens || 4096) },
+        generationConfig: {
+          maxOutputTokens: adjustMaxTokens("gemini-2.5-pro", params.maxTokens || 4096),
+          // @ts-ignore — thinking budget制限で速度改善
+          thinkingConfig: { thinkingBudget: 1024 },
+        },
       });
-      const result = await fallback.generateContent(params.prompt);
+
+      if (attempt === MAX_RETRIES && config.model.includes("flash")) {
+        console.warn(`[geminiGenerate:${params.role}] Flash 503 x${MAX_RETRIES} → Pro fallback (thinking limited)`);
+      } else if (attempt > 0) {
+        console.warn(`[geminiGenerate:${params.role}] retry ${attempt}/${MAX_RETRIES}`);
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+
+      const result = await useModel.generateContent(params.prompt);
       return result.response.text();
+    } catch (err) {
+      const is503 = err instanceof Error && err.message.includes("503");
+      if (is503 && attempt < MAX_RETRIES) continue;
+      if (is503 && attempt === MAX_RETRIES - 1) continue; // one more try with Pro
+      console.error(`[geminiGenerate:${params.role}] error:`, err instanceof Error ? err.message : err);
+      throw err;
     }
-    console.error(`[geminiGenerate:${params.role}] error:`, err instanceof Error ? err.message : err);
-    throw err;
   }
+  throw new Error("unreachable");
 }
