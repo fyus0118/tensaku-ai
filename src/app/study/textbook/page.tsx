@@ -11,6 +11,8 @@ import {
   ChevronRight,
   ChevronDown,
   FileText,
+  Flag,
+  Check,
 } from "lucide-react";
 import { getExamById } from "@/lib/exams";
 import { groupMaterialsBySubject, type MaterialSummary } from "@/lib/materials";
@@ -212,6 +214,9 @@ function TextbookContent() {
                 </figure>
               ))}
 
+              {/* 誤り報告 */}
+              <ReportButton examId={examId} topic={currentTopic} />
+
               {/* Prev/Next navigation */}
               <div className="mt-12 pt-6 border-t border-[var(--color-border)] flex items-center justify-between gap-4">
                 {prevTopic ? (
@@ -408,6 +413,73 @@ function TextbookContent() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ReportButton({ examId, topic }: { examId: string; topic: string }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!text.trim()) return;
+    setSending(true);
+    try {
+      await fetch("/api/report-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ examId, topic, message: text }),
+      });
+      setSent(true);
+      setText("");
+    } catch {}
+    setSending(false);
+  };
+
+  if (sent) {
+    return (
+      <div className="mt-8 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-sm text-emerald-700">
+        <Check className="w-5 h-5 shrink-0" />
+        報告ありがとうございます。確認して修正します。
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors"
+        >
+          <Flag className="w-4 h-4" />
+          この教材の誤りを報告する
+        </button>
+      ) : (
+        <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+          <p className="text-sm font-medium mb-2">誤りの内容を教えてください</p>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="例: 「心裡留保は原則無効」と書かれていますが、正しくは原則有効です（民法93条1項）"
+            className="w-full p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-sm resize-none h-24 focus:outline-none focus:border-[var(--color-accent)]"
+          />
+          <div className="flex items-center justify-end gap-3 mt-3">
+            <button onClick={() => setOpen(false)} className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+              キャンセル
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!text.trim() || sending}
+              className="px-4 py-2 rounded-lg bg-[var(--color-danger)] text-white text-sm font-medium disabled:opacity-50"
+            >
+              {sending ? "送信中..." : "報告する"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
